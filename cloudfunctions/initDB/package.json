@@ -1,0 +1,9 @@
+{
+  "name": "initDB",
+  "version": "1.0.0",
+  "description": "一键初始化数据库",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "latest"
+  }
+}

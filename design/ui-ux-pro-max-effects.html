@@ -1,0 +1,901 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>暴打小猪 UI/UX Pro Max 效果图</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800;900&display=swap');
+
+    :root {
+      --ink: #1e1b4b;
+      --paper: #fffaf0;
+      --indigo: #4f46e5;
+      --orange: #f97316;
+      --soft: #eef2ff;
+      --phone: #141118;
+      --shadow: 0 22px 55px rgba(30, 27, 75, 0.18);
+      --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      font-family: "Nunito", "PingFang SC", sans-serif;
+      background:
+        radial-gradient(circle at 10% 8%, rgba(249, 115, 22, 0.18), transparent 28rem),
+        radial-gradient(circle at 86% 2%, rgba(79, 70, 229, 0.18), transparent 26rem),
+        linear-gradient(135deg, #fff7e9, #eef2ff 48%, #fff2f7);
+    }
+
+    .board {
+      width: min(1440px, 100%);
+      margin: 0 auto;
+      padding: 34px 22px 54px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 24px;
+      align-items: end;
+      margin-bottom: 28px;
+    }
+
+    h1 {
+      margin: 0;
+      font-family: "Fredoka", "PingFang SC", sans-serif;
+      font-size: clamp(34px, 5vw, 68px);
+      line-height: 0.94;
+      letter-spacing: 0;
+    }
+
+    .hero p {
+      max-width: 720px;
+      margin: 14px 0 0;
+      color: rgba(30, 27, 75, 0.72);
+      font-size: 15px;
+      line-height: 1.72;
+      font-weight: 700;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 38px;
+      padding: 0 16px;
+      border: 3px solid rgba(30, 27, 75, 0.14);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.68);
+      box-shadow: 0 10px 28px rgba(30, 27, 75, 0.08);
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .systems {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(260px, 1fr));
+      gap: 18px;
+    }
+
+    .system {
+      min-width: 0;
+    }
+
+    .system-head {
+      min-height: 94px;
+      margin-bottom: 12px;
+      padding: 14px;
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.72);
+      box-shadow: 0 12px 28px rgba(30, 27, 75, 0.08);
+    }
+
+    .system-head h2 {
+      margin: 0;
+      font-family: "Fredoka", "PingFang SC", sans-serif;
+      font-size: 22px;
+      letter-spacing: 0;
+    }
+
+    .system-head p {
+      margin: 8px 0 0;
+      color: rgba(30, 27, 75, 0.68);
+      font-size: 12px;
+      line-height: 1.45;
+      font-weight: 800;
+    }
+
+    .phones {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .phone {
+      position: relative;
+      overflow: hidden;
+      aspect-ratio: 9 / 16;
+      min-height: 360px;
+      border: 8px solid var(--phone);
+      border-radius: 30px;
+      box-shadow: var(--shadow);
+      background: #fff;
+      isolation: isolate;
+    }
+
+    .phone::before {
+      content: "";
+      position: absolute;
+      top: 9px;
+      left: 50%;
+      z-index: 10;
+      width: 54px;
+      height: 7px;
+      transform: translateX(-50%);
+      border-radius: 99px;
+      background: rgba(0, 0, 0, 0.34);
+    }
+
+    .screen {
+      position: absolute;
+      inset: 0;
+      padding: 25px 12px 14px;
+    }
+
+    .top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      min-height: 28px;
+      position: relative;
+      z-index: 4;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 42px;
+      min-height: 26px;
+      padding: 0 8px;
+      border-radius: 999px;
+      font-size: 10px;
+      line-height: 1;
+      font-weight: 1000;
+      white-space: nowrap;
+    }
+
+    .pig {
+      position: relative;
+      width: 112px;
+      height: 108px;
+      margin: 20px auto 10px;
+      border-radius: 50% 46% 48% 52%;
+      transform: rotate(-3deg);
+    }
+
+    .pig::before,
+    .pig::after {
+      content: "";
+      position: absolute;
+      top: 2px;
+      z-index: -1;
+      width: 36px;
+      height: 38px;
+      border-radius: 50%;
+      background: inherit;
+    }
+
+    .pig::before {
+      left: 4px;
+    }
+
+    .pig::after {
+      right: 5px;
+    }
+
+    .eye {
+      position: absolute;
+      top: 40px;
+      width: 12px;
+      height: 16px;
+      border-radius: 50%;
+      background: #26171a;
+    }
+
+    .eye.left {
+      left: 34px;
+    }
+
+    .eye.right {
+      right: 34px;
+    }
+
+    .snout {
+      position: absolute;
+      left: 50%;
+      top: 62px;
+      width: 48px;
+      height: 30px;
+      transform: translateX(-50%);
+      border-radius: 50%;
+    }
+
+    .snout::before,
+    .snout::after {
+      content: "";
+      position: absolute;
+      top: 10px;
+      width: 7px;
+      height: 9px;
+      border-radius: 50%;
+      background: rgba(38, 23, 26, 0.7);
+    }
+
+    .snout::before {
+      left: 14px;
+    }
+
+    .snout::after {
+      right: 14px;
+    }
+
+    .game-title {
+      margin: 0;
+      font-family: "Fredoka", "PingFang SC", sans-serif;
+      font-size: 26px;
+      line-height: 0.98;
+      text-align: center;
+      letter-spacing: 0;
+    }
+
+    .line {
+      margin: 8px 0 14px;
+      text-align: center;
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .actions {
+      display: grid;
+      gap: 9px;
+      margin-top: 14px;
+    }
+
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 0 10px;
+      border-radius: 18px;
+      font-size: 13px;
+      font-weight: 1000;
+      white-space: nowrap;
+      transition: transform 180ms var(--spring), filter 180ms ease-out;
+    }
+
+    .btn:active {
+      transform: scale(0.95, 0.9);
+      filter: brightness(0.97);
+    }
+
+    .two {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .arena {
+      position: absolute;
+      inset: 86px 0 0;
+      overflow: hidden;
+    }
+
+    .floor {
+      position: absolute;
+      inset: auto -30px -30px;
+      height: 72%;
+      border-radius: 46% 46% 0 0;
+    }
+
+    .hole {
+      position: absolute;
+      width: 70px;
+      height: 27px;
+      border-radius: 50%;
+      transform: rotate(-5deg);
+      z-index: 1;
+    }
+
+    .enemy {
+      position: absolute;
+      z-index: 2;
+      width: 46px;
+      height: 43px;
+      border-radius: 48% 52% 44% 56%;
+    }
+
+    .enemy::before,
+    .enemy::after {
+      content: "";
+      position: absolute;
+      top: -7px;
+      width: 17px;
+      height: 17px;
+      border-radius: 50%;
+      background: inherit;
+    }
+
+    .enemy::before {
+      left: 4px;
+    }
+
+    .enemy::after {
+      right: 4px;
+    }
+
+    .weapon {
+      position: absolute;
+      right: 22px;
+      bottom: 70px;
+      z-index: 3;
+      width: 16px;
+      height: 102px;
+      transform: rotate(34deg);
+      border-radius: 99px;
+    }
+
+    .hit {
+      position: absolute;
+      right: 60px;
+      bottom: 138px;
+      z-index: 4;
+      width: 54px;
+      height: 54px;
+      clip-path: polygon(50% 0, 61% 31%, 94% 18%, 72% 48%, 100% 67%, 64% 66%, 65% 100%, 46% 72%, 17% 94%, 29% 59%, 0 47%, 34% 36%);
+    }
+
+    .hud {
+      position: relative;
+      z-index: 5;
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .meter {
+      height: 11px;
+      overflow: hidden;
+      border-radius: 99px;
+      background: rgba(255, 255, 255, 0.48);
+    }
+
+    .meter i {
+      display: block;
+      width: 73%;
+      height: 100%;
+      border-radius: inherit;
+    }
+
+    .note {
+      margin: 12px 2px 0;
+      color: rgba(30, 27, 75, 0.72);
+      font-size: 12px;
+      line-height: 1.58;
+      font-weight: 800;
+    }
+
+    .tactile .screen {
+      background:
+        radial-gradient(circle at 18% 22%, rgba(255, 255, 255, 0.92) 0 14px, transparent 15px),
+        radial-gradient(circle at 82% 18%, rgba(129, 140, 248, 0.28) 0 34px, transparent 35px),
+        linear-gradient(180deg, #eef2ff, #fff3e8 58%, #ffe1d0);
+    }
+
+    .tactile .chip {
+      color: #4338ca;
+      background: rgba(255, 255, 255, 0.78);
+      box-shadow: inset -2px -2px 7px rgba(79, 70, 229, 0.12), 0 5px 0 rgba(79, 70, 229, 0.18);
+    }
+
+    .tactile .pig,
+    .tactile .enemy {
+      background: #ff8fb5;
+      box-shadow: inset -8px -9px 0 rgba(194, 52, 101, 0.18), 0 10px 0 rgba(79, 70, 229, 0.14);
+    }
+
+    .tactile .snout {
+      background: #ffc0d0;
+    }
+
+    .tactile .game-title {
+      color: #4f46e5;
+      text-shadow: 2px 3px 0 #ffcc62;
+    }
+
+    .tactile .line {
+      color: #7c3f77;
+    }
+
+    .tactile .btn {
+      color: #fff;
+      box-shadow: inset -4px -5px 0 rgba(0, 0, 0, 0.13), 0 8px 0 rgba(79, 70, 229, 0.22);
+    }
+
+    .tactile .primary {
+      background: linear-gradient(180deg, #ff9d52, #f97316);
+    }
+
+    .tactile .secondary {
+      background: linear-gradient(180deg, #7770ff, #4f46e5);
+    }
+
+    .tactile .minor {
+      background: linear-gradient(180deg, #3dd6be, #18a991);
+    }
+
+    .tactile .floor {
+      background: rgba(255, 255, 255, 0.42);
+    }
+
+    .tactile .hole {
+      background: #8f5a4c;
+      box-shadow: inset 0 8px 0 rgba(0, 0, 0, 0.18);
+    }
+
+    .tactile .weapon {
+      background: linear-gradient(90deg, #8b5a36 0 42%, #f7c66d 43%);
+    }
+
+    .tactile .hit {
+      background: #ffcc3d;
+    }
+
+    .tactile .meter i {
+      background: linear-gradient(90deg, #2dd4bf, #ffcc3d);
+    }
+
+    .chrome .screen {
+      color: #fff;
+      background:
+        radial-gradient(circle at 50% 17%, rgba(255, 109, 191, 0.36), transparent 92px),
+        radial-gradient(circle at 88% 72%, rgba(0, 255, 225, 0.23), transparent 90px),
+        linear-gradient(180deg, #141329, #231940 56%, #321826);
+    }
+
+    .chrome .chip {
+      color: #171329;
+      background: linear-gradient(135deg, #ffffff, #b8c0ff 44%, #ff9ecd);
+      box-shadow: 0 0 18px rgba(255, 158, 205, 0.45);
+    }
+
+    .chrome .pig,
+    .chrome .enemy {
+      background: linear-gradient(135deg, #fff 0%, #ff9ecd 30%, #ff4f9a 64%, #6ff8ee 100%);
+      box-shadow: 0 0 0 3px #fff, 0 0 26px rgba(255, 79, 154, 0.45);
+    }
+
+    .chrome .snout {
+      background: rgba(255, 255, 255, 0.72);
+    }
+
+    .chrome .game-title {
+      color: #fff;
+      text-shadow: 2px 0 #ff4f9a, -2px 2px #3cf2e3, 0 0 16px rgba(255,255,255,0.6);
+    }
+
+    .chrome .line {
+      color: #7df7ee;
+    }
+
+    .chrome .btn {
+      color: #171329;
+      background: linear-gradient(135deg, #fff, #b9c2ff 42%, #ff9ecd 72%, #fff);
+      box-shadow: 0 0 18px rgba(255, 158, 205, 0.38), inset -4px -4px 0 rgba(0,0,0,0.12);
+    }
+
+    .chrome .secondary {
+      color: #fff;
+      background: linear-gradient(135deg, #4f46e5, #ff4f9a);
+    }
+
+    .chrome .minor {
+      color: #111329;
+      background: #7df7ee;
+    }
+
+    .chrome .floor {
+      background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.08));
+      border-top: 2px solid rgba(125, 247, 238, 0.42);
+    }
+
+    .chrome .hole {
+      background: #05050f;
+      border: 2px solid #7df7ee;
+      box-shadow: 0 0 18px rgba(125, 247, 238, 0.45);
+    }
+
+    .chrome .weapon {
+      background: linear-gradient(90deg, #fff, #ff9ecd, #7df7ee);
+      box-shadow: 0 0 18px rgba(255, 158, 205, 0.5);
+    }
+
+    .chrome .hit {
+      background: #7df7ee;
+      box-shadow: 0 0 22px rgba(125, 247, 238, 0.7);
+    }
+
+    .chrome .meter i {
+      background: linear-gradient(90deg, #ff4f9a, #7df7ee);
+    }
+
+    .pixel .screen {
+      color: #fff7d6;
+      background:
+        linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(180deg, #101018, #1d2039 56%, #26241a);
+      background-size: 12px 12px, 12px 12px, auto;
+      image-rendering: pixelated;
+    }
+
+    .pixel .chip,
+    .pixel .btn,
+    .pixel .pig,
+    .pixel .enemy,
+    .pixel .snout,
+    .pixel .hole {
+      border-radius: 0;
+    }
+
+    .pixel .chip {
+      color: #101018;
+      background: #ffd84a;
+      box-shadow: 3px 3px 0 #000;
+    }
+
+    .pixel .pig,
+    .pixel .enemy {
+      background: #ff5f7f;
+      box-shadow: 0 0 0 3px #000, 5px 5px 0 #00d0bd;
+    }
+
+    .pixel .snout {
+      background: #ffc2ca;
+      box-shadow: 0 0 0 2px #000;
+    }
+
+    .pixel .game-title {
+      color: #ffd84a;
+      text-shadow: 3px 0 #000, 0 3px #000, 4px 4px 0 #f0445e;
+    }
+
+    .pixel .line {
+      color: #00d0bd;
+    }
+
+    .pixel .btn {
+      color: #101018;
+      background: #ffd84a;
+      box-shadow: 4px 4px 0 #000;
+    }
+
+    .pixel .secondary {
+      color: #fff;
+      background: #f0445e;
+    }
+
+    .pixel .minor {
+      background: #00d0bd;
+    }
+
+    .pixel .floor {
+      background: rgba(255, 216, 74, 0.08);
+      border-top: 4px solid #ffd84a;
+    }
+
+    .pixel .hole {
+      background: #07070a;
+      border: 3px solid #ffd84a;
+    }
+
+    .pixel .weapon {
+      border-radius: 0;
+      background: #ffd84a;
+      box-shadow: 5px 0 0 #f0445e, 8px 0 0 #000;
+    }
+
+    .pixel .hit {
+      background: #ffd84a;
+    }
+
+    .pixel .meter {
+      border-radius: 0;
+      border: 2px solid #000;
+      background: #fff7d6;
+    }
+
+    .pixel .meter i {
+      border-radius: 0;
+      background: #00d0bd;
+    }
+
+    .sticker .screen {
+      background:
+        radial-gradient(circle at 18% 17%, #ffd84a 0 18px, transparent 19px),
+        radial-gradient(circle at 83% 24%, #65d6c6 0 20px, transparent 21px),
+        linear-gradient(180deg, #fff8df, #fff1c9);
+    }
+
+    .sticker .chip {
+      color: #291d18;
+      background: #fffef1;
+      border: 3px solid #291d18;
+      box-shadow: 4px 4px 0 #291d18;
+      border-radius: 10px;
+    }
+
+    .sticker .pig,
+    .sticker .enemy {
+      background: #ff8a91;
+      border: 3px solid #291d18;
+      box-shadow: 6px 6px 0 rgba(41, 29, 24, 0.2);
+    }
+
+    .sticker .snout {
+      background: #ffc2c5;
+      border: 2px solid #291d18;
+    }
+
+    .sticker .game-title {
+      color: #291d18;
+      text-shadow: 3px 3px 0 #ffd84a;
+    }
+
+    .sticker .line {
+      color: #71523b;
+    }
+
+    .sticker .btn {
+      color: #291d18;
+      border: 3px solid #291d18;
+      box-shadow: 5px 5px 0 #291d18;
+    }
+
+    .sticker .primary {
+      background: #ffd84a;
+    }
+
+    .sticker .secondary {
+      color: #fffef1;
+      background: #4f46e5;
+    }
+
+    .sticker .minor {
+      background: #65d6c6;
+    }
+
+    .sticker .floor {
+      background: rgba(255, 255, 255, 0.3);
+      border-top: 3px dashed rgba(41, 29, 24, 0.25);
+    }
+
+    .sticker .hole {
+      background: #7b5f4a;
+      border: 3px solid #291d18;
+    }
+
+    .sticker .weapon {
+      background: #b97a40;
+      border: 3px solid #291d18;
+    }
+
+    .sticker .hit {
+      background: #ffd84a;
+      filter: drop-shadow(3px 3px 0 #291d18);
+    }
+
+    .sticker .meter {
+      border: 3px solid #291d18;
+      background: #fffef1;
+    }
+
+    .sticker .meter i {
+      background: #65d6c6;
+    }
+
+    @media (max-width: 1240px) {
+      .systems {
+        grid-template-columns: repeat(2, minmax(280px, 1fr));
+      }
+    }
+
+    @media (max-width: 700px) {
+      .board {
+        padding: 24px 14px 38px;
+      }
+
+      .hero {
+        grid-template-columns: 1fr;
+      }
+
+      .systems {
+        grid-template-columns: 1fr;
+      }
+
+      .phones {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="board">
+    <section class="hero">
+      <div>
+        <h1>暴打小猪<br>UI/UX Pro Max 效果图</h1>
+        <p>基于 ui-ux-pro-max 检索结果：Tactile Digital、Y2K、Pixel Art、Neubrutalism/Sticker 四个方向。每套包含主菜单与战斗界面，重点展示按钮触感、打击反馈、HUD 信息密度和竖屏安全区域。</p>
+      </div>
+      <span class="badge">Fredoka + Nunito · 44px touch targets</span>
+    </section>
+
+    <section class="systems">
+      <article class="system tactile">
+        <div class="system-head">
+          <h2>A · 果冻触感</h2>
+          <p>主推方向。圆润、解压、按压反馈强，适合当前小游戏气质。</p>
+        </div>
+        <div class="phones">
+          <div class="phone">
+            <div class="screen">
+              <div class="top"><span class="chip">第 12 关</span><span class="chip">2680 金币</span></div>
+              <div class="pig"><i class="eye left"></i><i class="eye right"></i><b class="snout"></b></div>
+              <h3 class="game-title">暴打小猪</h3>
+              <p class="line">摸鱼五分钟 · 压力少一点</p>
+              <div class="actions">
+                <div class="btn primary">开始暴打</div>
+                <div class="btn secondary">武器商店</div>
+                <div class="two"><div class="btn minor">头像</div><div class="btn minor">音效</div></div>
+              </div>
+            </div>
+          </div>
+          <div class="phone">
+            <div class="screen">
+              <div class="top"><span class="chip">36 COMBO</span><span class="chip">00:42</span></div>
+              <div class="hud"><div class="meter"><i></i></div><span class="chip">防线良好</span></div>
+              <div class="arena">
+                <div class="floor"></div>
+                <span class="hole" style="left: 22px; top: 86px;"></span>
+                <span class="hole" style="right: 25px; top: 148px;"></span>
+                <span class="enemy" style="left: 42px; top: 60px;"></span>
+                <span class="enemy" style="right: 46px; top: 120px;"></span>
+                <span class="weapon"></span><span class="hit"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="note">落地建议：按钮 active 做 scale(0.95, 0.9)，命中时短震动、星形闪光和金币飞入。</p>
+      </article>
+
+      <article class="system chrome">
+        <div class="system-head">
+          <h2>B · Y2K 镭射</h2>
+          <p>强视觉记忆，适合年轻化传播和截图分享，注意控制对比度。</p>
+        </div>
+        <div class="phones">
+          <div class="phone">
+            <div class="screen">
+              <div class="top"><span class="chip">STAGE 12</span><span class="chip">2680 G</span></div>
+              <div class="pig"><i class="eye left"></i><i class="eye right"></i><b class="snout"></b></div>
+              <h3 class="game-title">暴打小猪</h3>
+              <p class="line">NEON · SMASH · REWARD</p>
+              <div class="actions">
+                <div class="btn primary">START</div>
+                <div class="btn secondary">升级武器</div>
+                <div class="two"><div class="btn minor">头像</div><div class="btn minor">声音</div></div>
+              </div>
+            </div>
+          </div>
+          <div class="phone">
+            <div class="screen">
+              <div class="top"><span class="chip">RAGE x3</span><span class="chip">00:42</span></div>
+              <div class="hud"><div class="meter"><i></i></div><span class="chip">暴击就绪</span></div>
+              <div class="arena">
+                <div class="floor"></div>
+                <span class="hole" style="left: 26px; top: 84px;"></span>
+                <span class="hole" style="right: 20px; top: 146px;"></span>
+                <span class="enemy" style="left: 45px; top: 58px;"></span>
+                <span class="enemy" style="right: 42px; top: 118px;"></span>
+                <span class="weapon"></span><span class="hit"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="note">落地建议：用于活动版本或皮肤主题；光效要限制数量，避免真机掉帧。</p>
+      </article>
+
+      <article class="system pixel">
+        <div class="system-head">
+          <h2>C · 像素街机</h2>
+          <p>打击感最直接，HUD 清晰，适合强化连击和关卡挑战。</p>
+        </div>
+        <div class="phones">
+          <div class="phone">
+            <div class="screen">
+              <div class="top"><span class="chip">LV 12</span><span class="chip">G 2680</span></div>
+              <div class="pig"><i class="eye left"></i><i class="eye right"></i><b class="snout"></b></div>
+              <h3 class="game-title">暴打小猪</h3>
+              <p class="line">PRESS START TO SMASH</p>
+              <div class="actions">
+                <div class="btn primary">开始</div>
+                <div class="btn secondary">装备</div>
+                <div class="two"><div class="btn minor">头像</div><div class="btn minor">设置</div></div>
+              </div>
+            </div>
+          </div>
+          <div class="phone">
+            <div class="screen">
+              <div class="top"><span class="chip">COMBO 36</span><span class="chip">TIME 42</span></div>
+              <div class="hud"><div class="meter"><i></i></div><span class="chip">HP 73%</span></div>
+              <div class="arena">
+                <div class="floor"></div>
+                <span class="hole" style="left: 24px; top: 88px;"></span>
+                <span class="hole" style="right: 22px; top: 150px;"></span>
+                <span class="enemy" style="left: 43px; top: 62px;"></span>
+                <span class="enemy" style="right: 43px; top: 122px;"></span>
+                <span class="weapon"></span><span class="hit"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="note">落地建议：如果走这个方向，角色和武器也要像素化，否则 UI 和游戏画面会割裂。</p>
+      </article>
+
+      <article class="system sticker">
+        <div class="system-head">
+          <h2>D · 贴纸漫画</h2>
+          <p>粗描边、硬阴影、手作感，品牌完整度高，Canvas 实现稳定。</p>
+        </div>
+        <div class="phones">
+          <div class="phone">
+            <div class="screen">
+              <div class="top"><span class="chip">第 12 关</span><span class="chip">金币 2680</span></div>
+              <div class="pig"><i class="eye left"></i><i class="eye right"></i><b class="snout"></b></div>
+              <h3 class="game-title">暴打小猪</h3>
+              <p class="line">今日份坏心情排队中</p>
+              <div class="actions">
+                <div class="btn primary">开始暴打</div>
+                <div class="btn secondary">商店</div>
+                <div class="two"><div class="btn minor">改名</div><div class="btn minor">音效</div></div>
+              </div>
+            </div>
+          </div>
+          <div class="phone">
+            <div class="screen">
+              <div class="top"><span class="chip">连击 36</span><span class="chip">剩余 42</span></div>
+              <div class="hud"><div class="meter"><i></i></div><span class="chip">防线状态良好</span></div>
+              <div class="arena">
+                <div class="floor"></div>
+                <span class="hole" style="left: 26px; top: 88px;"></span>
+                <span class="hole" style="right: 24px; top: 150px;"></span>
+                <span class="enemy" style="left: 44px; top: 62px;"></span>
+                <span class="enemy" style="right: 44px; top: 122px;"></span>
+                <span class="weapon"></span><span class="hit"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="note">落地建议：这是最稳的工程方案，粗描边和硬阴影能直接迁移到 2D Canvas。</p>
+      </article>
+    </section>
+  </main>
+</body>
+</html>

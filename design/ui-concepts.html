@@ -1,0 +1,739 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>暴打小猪 UI Concepts</title>
+  <style>
+    :root {
+      --ink: #241b17;
+      --paper: #fff8e9;
+      --muted: #71645d;
+      --shadow: 0 18px 42px rgba(41, 28, 18, 0.18);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: "Avenir Next", "PingFang SC", "Hiragino Sans GB", sans-serif;
+      background:
+        radial-gradient(circle at 8% 12%, rgba(255, 120, 86, 0.22), transparent 26rem),
+        radial-gradient(circle at 92% 4%, rgba(70, 190, 160, 0.16), transparent 24rem),
+        linear-gradient(135deg, #fff8ec 0%, #f1f7ee 48%, #fff3f0 100%);
+    }
+
+    .page {
+      width: min(1320px, 100%);
+      margin: 0 auto;
+      padding: 34px 24px 54px;
+    }
+
+    .header {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 24px;
+      align-items: end;
+      margin-bottom: 28px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(32px, 5vw, 64px);
+      line-height: 0.94;
+      letter-spacing: 0;
+    }
+
+    .header p {
+      max-width: 620px;
+      margin: 14px 0 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 34px;
+      padding: 0 14px;
+      border: 2px solid rgba(36, 27, 23, 0.16);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.62);
+      font-weight: 800;
+      font-size: 13px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(280px, 1fr));
+      gap: 22px;
+    }
+
+    .concept {
+      min-width: 0;
+    }
+
+    .concept-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 0 0 12px;
+    }
+
+    .concept-title h2 {
+      margin: 0;
+      font-size: 22px;
+      letter-spacing: 0;
+    }
+
+    .concept-title span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .phones {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .phone {
+      position: relative;
+      overflow: hidden;
+      aspect-ratio: 9 / 16;
+      border: 8px solid #221a18;
+      border-radius: 30px;
+      box-shadow: var(--shadow);
+      isolation: isolate;
+    }
+
+    .phone::before {
+      content: "";
+      position: absolute;
+      top: 9px;
+      left: 50%;
+      z-index: 10;
+      width: 58px;
+      height: 7px;
+      transform: translateX(-50%);
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.34);
+    }
+
+    .screen {
+      position: absolute;
+      inset: 0;
+      padding: 24px 14px 16px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      min-height: 26px;
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 42px;
+      height: 26px;
+      padding: 0 9px;
+      border-radius: 999px;
+      white-space: nowrap;
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .hero-pig {
+      position: relative;
+      width: 118px;
+      height: 118px;
+      margin: 22px auto 8px;
+      border-radius: 48% 52% 46% 54%;
+    }
+
+    .hero-pig::before,
+    .hero-pig::after {
+      content: "";
+      position: absolute;
+      top: 5px;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      z-index: -1;
+    }
+
+    .hero-pig::before {
+      left: 5px;
+    }
+
+    .hero-pig::after {
+      right: 5px;
+    }
+
+    .eyes {
+      position: absolute;
+      top: 41px;
+      left: 0;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+    }
+
+    .eyes i {
+      width: 12px;
+      height: 15px;
+      border-radius: 50%;
+      background: #271a18;
+    }
+
+    .nose {
+      position: absolute;
+      left: 50%;
+      top: 62px;
+      width: 48px;
+      height: 30px;
+      transform: translateX(-50%);
+      border-radius: 50%;
+    }
+
+    .nose::before,
+    .nose::after {
+      content: "";
+      position: absolute;
+      top: 10px;
+      width: 7px;
+      height: 9px;
+      border-radius: 50%;
+      background: rgba(39, 26, 24, 0.72);
+    }
+
+    .nose::before {
+      left: 15px;
+    }
+
+    .nose::after {
+      right: 15px;
+    }
+
+    .title {
+      margin: 0 auto 6px;
+      text-align: center;
+      font-size: 28px;
+      line-height: 1;
+      font-weight: 1000;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 0 0 16px;
+      text-align: center;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .actions {
+      display: grid;
+      gap: 9px;
+      margin-top: 14px;
+    }
+
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      border-radius: 16px;
+      font-size: 14px;
+      font-weight: 1000;
+      box-shadow: 0 8px 0 rgba(0, 0, 0, 0.14);
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .arena {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 66%;
+    }
+
+    .hole {
+      position: absolute;
+      width: 72px;
+      height: 28px;
+      border-radius: 50%;
+      transform: rotate(-4deg);
+    }
+
+    .pig-small {
+      position: absolute;
+      width: 48px;
+      height: 44px;
+      border-radius: 48% 52% 44% 56%;
+    }
+
+    .pig-small::before,
+    .pig-small::after {
+      content: "";
+      position: absolute;
+      top: -8px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: inherit;
+    }
+
+    .pig-small::before {
+      left: 4px;
+    }
+
+    .pig-small::after {
+      right: 4px;
+    }
+
+    .weapon {
+      position: absolute;
+      right: 20px;
+      bottom: 62px;
+      width: 16px;
+      height: 104px;
+      transform: rotate(34deg);
+      border-radius: 999px;
+    }
+
+    .hud {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .bar {
+      height: 11px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.45);
+    }
+
+    .bar i {
+      display: block;
+      width: 72%;
+      height: 100%;
+      border-radius: inherit;
+    }
+
+    .caption {
+      margin: 12px 2px 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .candy .screen {
+      background:
+        radial-gradient(circle at 18% 26%, rgba(255, 255, 255, 0.95) 0 14px, transparent 15px),
+        radial-gradient(circle at 78% 18%, rgba(255, 210, 90, 0.42) 0 20px, transparent 21px),
+        linear-gradient(180deg, #ffe9df 0%, #fff8ef 52%, #ffd9cd 100%);
+    }
+
+    .candy .pill {
+      color: #d43f4b;
+      background: #fff5f2;
+      border: 2px solid #ff9b9b;
+    }
+
+    .candy .hero-pig,
+    .candy .hero-pig::before,
+    .candy .hero-pig::after,
+    .candy .pig-small {
+      background: #ff8f9a;
+    }
+
+    .candy .nose {
+      background: #ffbdc4;
+    }
+
+    .candy .title {
+      color: #ff4152;
+      text-shadow: 2px 3px 0 #ffd35f;
+    }
+
+    .candy .subtitle {
+      color: #ca6570;
+    }
+
+    .candy .primary {
+      color: #fff;
+      background: linear-gradient(180deg, #ff6d6d, #f04555);
+    }
+
+    .candy .secondary {
+      color: #6d3300;
+      background: linear-gradient(180deg, #ffd96e, #ffad32);
+    }
+
+    .candy .muted-btn {
+      color: #fff;
+      background: #4fc7a4;
+    }
+
+    .candy .arena {
+      background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.38));
+    }
+
+    .candy .hole {
+      background: #8b5b47;
+      box-shadow: inset 0 7px 0 rgba(0, 0, 0, 0.16);
+    }
+
+    .candy .weapon {
+      background: linear-gradient(90deg, #9b613b 0 40%, #f3c07b 41% 100%);
+    }
+
+    .candy .bar i {
+      background: linear-gradient(90deg, #5fe0a6, #ffe15d);
+    }
+
+    .arcade .screen {
+      color: #fffdf0;
+      background:
+        linear-gradient(rgba(255,255,255,0.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.045) 1px, transparent 1px),
+        radial-gradient(circle at 50% 20%, rgba(255, 224, 95, 0.22), transparent 120px),
+        linear-gradient(180deg, #1b1720 0%, #262221 58%, #3a231b 100%);
+      background-size: 16px 16px, 16px 16px, auto, auto;
+    }
+
+    .arcade .pill {
+      color: #211717;
+      background: #ffe458;
+      border: 2px solid #fff5a3;
+    }
+
+    .arcade .hero-pig,
+    .arcade .hero-pig::before,
+    .arcade .hero-pig::after,
+    .arcade .pig-small {
+      background: #ff5f79;
+      box-shadow: 0 0 0 4px #221719, 9px 9px 0 #00c2a8;
+    }
+
+    .arcade .nose {
+      background: #ffb0bd;
+    }
+
+    .arcade .title {
+      color: #ffe95a;
+      text-shadow: 3px 0 #ff4f65, -3px 3px #00bfa8;
+    }
+
+    .arcade .subtitle {
+      color: #77ead7;
+    }
+
+    .arcade .primary {
+      color: #211717;
+      background: #ffe34f;
+    }
+
+    .arcade .secondary {
+      color: #fff;
+      background: #ef3758;
+    }
+
+    .arcade .muted-btn {
+      color: #171c1b;
+      background: #36e0c7;
+    }
+
+    .arcade .hole {
+      background: #090709;
+      border: 3px solid #ffdc4d;
+      box-shadow: 0 0 14px rgba(255, 224, 92, 0.42);
+    }
+
+    .arcade .weapon {
+      background: #ffe95a;
+      box-shadow: 6px 0 0 #ef3758;
+    }
+
+    .arcade .bar i {
+      background: linear-gradient(90deg, #ff3d59, #ffe95a);
+    }
+
+    .paper .screen {
+      background:
+        linear-gradient(90deg, rgba(75, 63, 49, 0.06) 1px, transparent 1px),
+        linear-gradient(rgba(75, 63, 49, 0.06) 1px, transparent 1px),
+        linear-gradient(180deg, #fff7de 0%, #f5edd1 100%);
+      background-size: 20px 20px;
+    }
+
+    .paper .pill {
+      color: #4d3524;
+      background: #fffef2;
+      border: 2px solid #cbb889;
+      border-radius: 10px;
+    }
+
+    .paper .hero-pig,
+    .paper .hero-pig::before,
+    .paper .hero-pig::after,
+    .paper .pig-small {
+      background: #ef9a8d;
+      border: 3px solid #4b3528;
+      box-shadow: 6px 7px 0 rgba(75, 53, 40, 0.16);
+    }
+
+    .paper .nose {
+      background: #ffd0c4;
+      border: 2px solid #4b3528;
+    }
+
+    .paper .title {
+      color: #4c3525;
+      text-shadow: 2px 2px 0 #ffc65b;
+    }
+
+    .paper .subtitle {
+      color: #8a6d55;
+    }
+
+    .paper .primary {
+      color: #4b3528;
+      background: #ffc85b;
+      border: 2px solid #4b3528;
+      box-shadow: 4px 5px 0 rgba(75, 53, 40, 0.24);
+    }
+
+    .paper .secondary {
+      color: #fffaf0;
+      background: #3f8f7a;
+      border: 2px solid #4b3528;
+      box-shadow: 4px 5px 0 rgba(75, 53, 40, 0.24);
+    }
+
+    .paper .muted-btn {
+      color: #4b3528;
+      background: #fffdf2;
+      border: 2px solid #4b3528;
+      box-shadow: 4px 5px 0 rgba(75, 53, 40, 0.18);
+    }
+
+    .paper .hole {
+      background: #75604a;
+      border: 3px solid #4b3528;
+    }
+
+    .paper .weapon {
+      background: #b77b42;
+      border: 2px solid #4b3528;
+    }
+
+    .paper .bar i {
+      background: #3f8f7a;
+    }
+
+    @media (max-width: 980px) {
+      .header {
+        grid-template-columns: 1fr;
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .phones {
+        grid-template-columns: repeat(2, minmax(150px, 230px));
+      }
+    }
+
+    @media (max-width: 520px) {
+      .page {
+        padding: 24px 14px 40px;
+      }
+
+      .phones {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="header">
+      <div>
+        <h1>暴打小猪<br>UI 方向稿</h1>
+        <p>三套视觉方向用于选择游戏气质：轻松解压、街机爽感、手作玩具。每套都覆盖主菜单和战斗界面的关键元素，后续可以把选中的方案落到 Canvas 绘制代码里。</p>
+      </div>
+      <div class="tag">WeChat Mini Game · 9:16</div>
+    </header>
+
+    <section class="grid">
+      <article class="concept candy">
+        <div class="concept-title">
+          <h2>方案 A · 糖果解压</h2>
+          <span>年轻 / 软萌 / 低压力</span>
+        </div>
+        <div class="phones">
+          <div class="phone">
+            <div class="screen">
+              <div class="topbar">
+                <span class="pill">LV 12</span>
+                <span class="pill">金币 2680</span>
+              </div>
+              <div class="hero-pig"><span class="eyes"><i></i><i></i></span><span class="nose"></span></div>
+              <h3 class="title">暴打小猪</h3>
+              <p class="subtitle">摸鱼五分钟 · 压力少一点</p>
+              <div class="actions">
+                <div class="btn primary">开始暴打</div>
+                <div class="btn secondary">武器商店</div>
+                <div class="row">
+                  <div class="btn muted-btn">换头像</div>
+                  <div class="btn muted-btn">音效</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="phone">
+            <div class="screen">
+              <div class="topbar">
+                <span class="pill">连击 36</span>
+                <span class="pill">00:42</span>
+              </div>
+              <div class="hud">
+                <div class="bar"><i></i></div>
+                <span class="pill">防线 HP</span>
+              </div>
+              <div class="arena">
+                <span class="hole" style="left: 22px; top: 64px;"></span>
+                <span class="hole" style="right: 26px; top: 128px;"></span>
+                <span class="pig-small" style="left: 38px; top: 40px;"></span>
+                <span class="pig-small" style="right: 46px; top: 100px;"></span>
+                <span class="weapon"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="caption">适合保留当前“解压小游戏”的亲和感，主按钮更圆润，反馈偏可爱。缺点是爽感略弱，后期需要靠动效补打击感。</p>
+      </article>
+
+      <article class="concept arcade">
+        <div class="concept-title">
+          <h2>方案 B · 霓虹街机</h2>
+          <span>刺激 / 爽感 / 强反馈</span>
+        </div>
+        <div class="phones">
+          <div class="phone">
+            <div class="screen">
+              <div class="topbar">
+                <span class="pill">STAGE 12</span>
+                <span class="pill">2680 G</span>
+              </div>
+              <div class="hero-pig"><span class="eyes"><i></i><i></i></span><span class="nose"></span></div>
+              <h3 class="title">暴打小猪</h3>
+              <p class="subtitle">COMBO · SMASH · REWARD</p>
+              <div class="actions">
+                <div class="btn primary">START</div>
+                <div class="btn secondary">武器升级</div>
+                <div class="row">
+                  <div class="btn muted-btn">头像</div>
+                  <div class="btn muted-btn">声音</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="phone">
+            <div class="screen">
+              <div class="topbar">
+                <span class="pill">36 COMBO</span>
+                <span class="pill">00:42</span>
+              </div>
+              <div class="hud">
+                <div class="bar"><i></i></div>
+                <span class="pill">RAGE READY</span>
+              </div>
+              <div class="arena">
+                <span class="hole" style="left: 24px; top: 70px;"></span>
+                <span class="hole" style="right: 20px; top: 134px;"></span>
+                <span class="pig-small" style="left: 42px; top: 44px;"></span>
+                <span class="pig-small" style="right: 42px; top: 104px;"></span>
+                <span class="weapon"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="caption">适合强调“暴打”和连击，视觉记忆点强，能做屏幕震动、闪白、像素字伤害数字。缺点是比当前可爱方向更激烈。</p>
+      </article>
+
+      <article class="concept paper">
+        <div class="concept-title">
+          <h2>方案 C · 纸片玩具</h2>
+          <span>手作 / 轻幽默 / 高完成度</span>
+        </div>
+        <div class="phones">
+          <div class="phone">
+            <div class="screen">
+              <div class="topbar">
+                <span class="pill">第 12 关</span>
+                <span class="pill">金币 2680</span>
+              </div>
+              <div class="hero-pig"><span class="eyes"><i></i><i></i></span><span class="nose"></span></div>
+              <h3 class="title">暴打小猪</h3>
+              <p class="subtitle">今日份坏心情已排队</p>
+              <div class="actions">
+                <div class="btn primary">开始</div>
+                <div class="btn secondary">商店</div>
+                <div class="row">
+                  <div class="btn muted-btn">改昵称</div>
+                  <div class="btn muted-btn">设置</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="phone">
+            <div class="screen">
+              <div class="topbar">
+                <span class="pill">连击 36</span>
+                <span class="pill">剩余 42 秒</span>
+              </div>
+              <div class="hud">
+                <div class="bar"><i></i></div>
+                <span class="pill">防线状态良好</span>
+              </div>
+              <div class="arena">
+                <span class="hole" style="left: 26px; top: 74px;"></span>
+                <span class="hole" style="right: 24px; top: 136px;"></span>
+                <span class="pig-small" style="left: 44px; top: 48px;"></span>
+                <span class="pig-small" style="right: 44px; top: 106px;"></span>
+                <span class="weapon"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="caption">适合做成完整品牌感，纸张格纹、粗描边和贴纸按钮都很好落地到 Canvas。缺点是需要统一所有 UI 细节，否则会显得不够精致。</p>
+      </article>
+    </section>
+  </main>
+</body>
+</html>

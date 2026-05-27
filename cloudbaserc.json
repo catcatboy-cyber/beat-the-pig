@@ -1,0 +1,10 @@
+{
+  "envId": "cloud1-d6go1lm0x2709873f",
+  "functionRoot": "cloudfunctions",
+  "functions": [
+    { "name": "msgSecCheck" },
+    { "name": "getRank" },
+    { "name": "updateRank" },
+    { "name": "initDB" }
+  ]
+}
