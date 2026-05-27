@@ -12,6 +12,15 @@ class WeaponSwitcherClass {
     this._y = Screen.gameHeight - Screen.scale(80)
     this._iconSize = Screen.scale(48)
 
+    // 自动解锁已达到等级的武器
+    var maxLevel = Storage.get('user.maxLevel') || 1
+    for (const [id, config] of Object.entries(WeaponConfig)) {
+      if (config.unlockLevel <= maxLevel) {
+        var lv = Storage.getWeaponLevel(id)
+        if (lv === 0) Storage.setWeaponLevel(id, 1)
+      }
+    }
+
     this.weapons = []
     this.weaponInstances = {}
     for (const [id, config] of Object.entries(WeaponConfig)) {
@@ -22,6 +31,14 @@ class WeaponSwitcherClass {
           this.weaponInstances[id] = new Broom()
         } else if (id === 'hammer') {
           this.weaponInstances[id] = new Hammer()
+        } else if (id === 'swatter') {
+          this.weaponInstances[id] = new FlySwatter()
+        } else if (id === 'taser') {
+          this.weaponInstances[id] = new Taser()
+        } else if (id === 'slipper') {
+          this.weaponInstances[id] = new Slipper()
+        } else if (id === 'rocket') {
+          this.weaponInstances[id] = new Rocket()
         }
       }
     }
@@ -40,6 +57,7 @@ class WeaponSwitcherClass {
   switchTo(weaponId) {
     if (this.weaponInstances[weaponId]) {
       this.currentWeaponId = weaponId
+      this.weaponInstances[weaponId]._initialized = false
     }
   }
 
@@ -63,7 +81,8 @@ class WeaponSwitcherClass {
       const touch = InputManager.getPrimaryTouch()
       if (touch) {
         if (InputManager.justPressed()) {
-          weapon._initialized = false
+          // 检查是否点击了武器切换图标
+          if (this.handleTap(touch.x, touch.y)) return
         }
         weapon.setPosition(touch.x, touch.y)
       }

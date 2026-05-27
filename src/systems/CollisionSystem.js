@@ -5,10 +5,14 @@ class CollisionSystemClass {
 
   check(weapon, pigs) {
     this.recentHits = []
-    if (!weapon || !InputManager.isTouching()) return this.recentHits
+    if (!weapon) return this.recentHits
 
     const hitArea = weapon.getHitArea()
     if (!hitArea) return this.recentHits
+
+    if (!InputManager.isTouching() && !weapon._discharging && !weapon._launched && !weapon._thrown) {
+      return this.recentHits
+    }
 
     for (const pig of pigs) {
       if (!pig.alive || pig.invincibleTimer > 0) continue

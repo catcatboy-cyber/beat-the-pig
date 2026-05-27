@@ -19,11 +19,13 @@ class PigSpawnerClass {
     this.bossSpawned = false
 
     this._activePigs = []
+    this._pendingMudThrows = []
   }
 
   initLevel(levelConfig) {
     this.pool.releaseAll()
     this._activePigs = []
+    this._pendingMudThrows = []
     this.waves = levelConfig.waves
     this.currentWave = 0
     this.wavePigCount = 0
@@ -57,6 +59,7 @@ class PigSpawnerClass {
     this.spawnInterval = wave.interval * 1000
     this.spawnTimer = 0
     this.waveTypes = wave.types
+    HUD.setWave(index + 1)
   }
 
   update(dt) {
@@ -65,7 +68,7 @@ class PigSpawnerClass {
       hole.update(dt)
     }
 
-    // 生成小猪
+    // 生成小猪（Boss 出场前）
     if (this.waveActive && !this.bossSpawned) {
       this.spawnTimer += dt
       const limit = this.bossConfig ? 8 : 15
@@ -73,18 +76,21 @@ class PigSpawnerClass {
         this.spawnTimer -= this.spawnInterval
         this._spawnPig()
       }
+      // 本波小猪刷完后，有 Boss 则出 Boss
       if (this.wavePigSpawned >= this.wavePigCount) {
-        // Boss 关：刷完小怪后出 Boss
         if (this.bossConfig && !this.bossSpawned) {
           this._spawnBoss()
-        } else {
-          // 检查是否所有猪都清完了
-          if (this._activePigs.length === 0) {
-            this.currentWave++
-            this._startWave(this.currentWave)
-          }
+        } else if (this._activePigs.length === 0) {
+          this.currentWave++
+          this._startWave(this.currentWave)
         }
       }
+    }
+
+    // Boss 出场后：等 Boss 被清掉再推进下一波
+    if (this.waveActive && this.bossSpawned && this._activePigs.length === 0) {
+      this.currentWave++
+      this._startWave(this.currentWave)
     }
 
     // 非刷怪期：检查是否所有猪都处理完了
@@ -93,13 +99,52 @@ class PigSpawnerClass {
       this._startWave(this.currentWave)
     }
 
-    // 更新小猪
+    // 更新小猪 + 处理特殊能力
     for (let i = this._activePigs.length - 1; i >= 0; i--) {
       const pig = this._activePigs[i]
       pig.update(dt)
+
+      if (pig._shouldSplit) {
+        this._handleSplit(pig)
+        this._activePigs.splice(i, 1)
+        this.pool.release(pig)
+        continue
+      }
+      if (pig._shouldExplode) {
+        this._handleExplode(pig)
+        this._activePigs.splice(i, 1)
+        this.pool.release(pig)
+        continue
+      }
+      if (pig._cloneReady) {
+        this._spawnClonePig(pig)
+        pig._cloneReady = false
+      }
+      if (pig._mudThrowReady) {
+        this._pendingMudThrows.push({ x: pig.x, y: pig.y })
+        pig._mudThrowReady = false
+      }
+
       if (!pig.alive && !pig.escaped) {
         this._activePigs.splice(i, 1)
         this.pool.release(pig)
+      }
+    }
+
+    // 哭包猪阻挡：crying 的猪挡住后方（上方）的猪
+    for (const pig of this._activePigs) {
+      if (pig._crying && pig.state === PIG_STATE.WALKING) {
+        for (const other of this._activePigs) {
+          if (other !== pig && other.state === PIG_STATE.WALKING && !other._crying) {
+            if (other.y + other.height / 2 < pig.y - pig.height / 2 &&
+                Math.abs(other.x - pig.x) < pig.width * 1.5) {
+              var blockY = pig.y - pig.height / 2 - other.height / 2
+              if (other.y + other.height / 2 > blockY) {
+                other.y = blockY
+              }
+            }
+          }
+        }
       }
     }
   }
@@ -126,6 +171,67 @@ class PigSpawnerClass {
     pig.maxHp = this.bossConfig.hp
     this._activePigs.push(pig)
     this.bossSpawned = true
+  }
+
+  _handleSplit(pig) {
+    var halfSize = pig.typeConfig.size / 2
+    for (var i = 0; i < 2; i++) {
+      var sx = pig.x + (i === 0 ? -halfSize : halfSize)
+      var sy = pig.y - 10
+      var child = this.pool.acquire()
+      child.init('normal', Math.max(20, Math.min(Screen.gameWidth - 20, sx)), sy, pig.holeIndex)
+      child.width = halfSize
+      child.height = halfSize
+      child.hp = 30
+      child.maxHp = 30
+      child.speed = child.typeConfig.speed * 1.3
+      child.nickname = '小' + pig.nickname
+      this._activePigs.push(child)
+    }
+  }
+
+  _handleExplode(pig) {
+    ParticleSystem.emitExplosion(pig.x, pig.y)
+    this.damageInRadius(pig.x, pig.y, 120, 200)
+  }
+
+  _spawnClonePig(pig) {
+    var offsetX = (Math.random() - 0.5) * 80
+    var clone = this.pool.acquire()
+    clone.init(pig.type, pig.x + offsetX, pig.y - 30, pig.holeIndex)
+    clone.hp = 1
+    clone.maxHp = 1
+    clone._isClone = true
+    clone.nickname = pig.nickname + '(伪)'
+    this._activePigs.push(clone)
+  }
+
+  spawnPigAt(typeId, x, y, holeIndex, nickname) {
+    var pig = this.pool.acquire()
+    pig.init(typeId || 'normal', x, y, holeIndex !== undefined ? holeIndex : 0, nickname)
+    this._activePigs.push(pig)
+    return pig
+  }
+
+  damageInRadius(cx, cy, radius, damage) {
+    for (var i = this._activePigs.length - 1; i >= 0; i--) {
+      var pig = this._activePigs[i]
+      if (!pig.alive || pig._isClone) continue
+      var dx = pig.x - cx
+      var dy = pig.y - cy
+      if (Math.sqrt(dx * dx + dy * dy) < radius) {
+        pig.hp -= damage
+        if (pig.hp <= 0 && pig.state !== PIG_STATE.DEAD) {
+          pig.state = PIG_STATE.DEAD
+        }
+      }
+    }
+  }
+
+  getPendingMudThrows() {
+    var result = this._pendingMudThrows.slice()
+    this._pendingMudThrows = []
+    return result
   }
 
   getActivePigs() {

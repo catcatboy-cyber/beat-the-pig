@@ -1,15 +1,15 @@
 class BattleScene {
   constructor() {
     this.levelConfig = null
-    this.state = 'ready'  // ready, playing, wave_end, paused, victory, defeat
+    this.state = 'ready'
     this.defenseLine = new DefenseLine()
     this.escapedCount = 0
     this.totalGold = 0
     this.totalKills = 0
     this._stateTimer = 0
     this._readyCountdown = 3
-    this._waveEndTimer = 0
-    this._magnetPigs = []  // 磁铁收集到的金币猪
+    this._magnetPigs = []
+    this._mudDebuffTimer = 0
   }
 
   onEnter(data) {
@@ -21,6 +21,7 @@ class BattleScene {
     this.escapedCount = 0
     this.totalGold = 0
     this.totalKills = 0
+    this._mudDebuffTimer = 0
 
     WeaponSwitcher.init()
     PigSpawner.initLevel(this.levelConfig)
@@ -44,9 +45,6 @@ class BattleScene {
         break
       case 'playing':
         this._updatePlaying(dt)
-        break
-      case 'wave_end':
-        this._updateWaveEnd(dt)
         break
       case 'victory':
       case 'defeat':
@@ -74,7 +72,7 @@ class BattleScene {
   }
 
   _updatePlaying(dt) {
-    // 输入更新
+    // 输入更新（含武器切换检测）
     WeaponSwitcher.update(dt)
 
     // 碰撞检测
@@ -100,7 +98,8 @@ class BattleScene {
       // 伤害数字
       const weaponCfg = WeaponConfig[weaponId]
       const atkMult = UpgradeSystem.getAttackMultiplier()
-      const damage = weaponCfg.upgrades[WeaponSwitcher.getCurrentWeapon().level - 1].damage * atkMult
+      const mudMult = this._mudDebuffTimer > 0 ? 0.5 : 1.0
+      const damage = weaponCfg.upgrades[WeaponSwitcher.getCurrentWeapon().level - 1].damage * atkMult * mudMult
       DamageNumber.spawn(damage, hit.x, hit.y - 20, hit.isSmash)
 
       // 连击
@@ -109,7 +108,11 @@ class BattleScene {
       // 金币
       const baseGold = pig.typeConfig.gold
       const comboBonus = ComboSystem.getGoldBonus(baseGold)
-      const totalPigGold = baseGold + comboBonus
+      var totalPigGold = baseGold + comboBonus
+      // 小偷猪：打死双倍金币
+      if (pig.hp <= 0 && pig.typeConfig.abilities && pig.typeConfig.abilities.indexOf('steal_gold') >= 0) {
+        totalPigGold *= 2
+      }
       this.totalGold += totalPigGold
       Storage.addGold(totalPigGold)
       ParticleSystem.emitGold(pig.x, pig.y, 3)
@@ -130,17 +133,133 @@ class BattleScene {
       if (pig.currentDialog) {
         DialogBubble.show(pig.currentDialog, pig.x, pig.y - 50)
       }
+
+      // 反弹猪：被打后弹飞撞击周围猪
+      if (pig.typeConfig.abilities && pig.typeConfig.abilities.indexOf('bounce_on_hit') >= 0) {
+        for (const other of activePigs) {
+          if (other === pig || !other.alive || other.state === PIG_STATE.DEAD) continue
+          var bdx = other.x - pig.x
+          var bdy = other.y - pig.y
+          var bdist = Math.sqrt(bdx * bdx + bdy * bdy)
+          if (bdist < 100) {
+            var bdir = { x: bdx / bdist, y: bdy / bdist }
+            other.takeDamage(damage * 0.5, bdir, 3)
+            ParticleSystem.emitHit(other.x, other.y, 'broom')
+          }
+        }
+      }
+
+      // 电击棒：放电时麻痹小猪
+      if (weaponId === 'taser' && weapon._discharging) {
+        pig._shockTimer = weapon.config.stunDuration * 1000
+        pig.speed = 0
+      }
+
+      // 火箭炮：爆炸时附加燃烧
+      if (weaponId === 'rocket' && weapon._exploding) {
+        pig._burnTimer = weapon.config.burnDuration * 1000
+        pig._burnDps = weapon.config.burnDamage
+      }
+
+      // 拖鞋：击中后弹射到最近的猪
+      if (weaponId === 'slipper' && weapon._thrown && !weapon._returning) {
+        var nearest = null
+        var nearestDist = Infinity
+        for (const other of activePigs) {
+          if (other === pig || !other.alive || other.state === PIG_STATE.DEAD) continue
+          var sdx = other.x - pig.x
+          var sdy = other.y - pig.y
+          var sdist = Math.sqrt(sdx * sdx + sdy * sdy)
+          if (sdist < nearestDist) { nearestDist = sdist; nearest = other }
+        }
+        if (nearest && nearestDist < 350) {
+          var ndx = nearest.x - pig.x
+          var ndy = nearest.y - pig.y
+          var ndist = Math.sqrt(ndx * ndx + ndy * ndy) || 1
+          weapon._slipperVx = (ndx / ndist) * 700
+          weapon._slipperVy = (ndy / ndist) * 700
+          weapon._bouncesLeft--
+          if (weapon._bouncesLeft <= 0) weapon._returning = true
+        }
+      }
+    }
+
+    // 苍蝇拍溅射（每 3 秒触发一次范围伤害）
+    if (weapon && weapon.id === 'swatter' && weapon._splashReady) {
+      weapon._splashReady = false
+      ParticleSystem.emitExplosion(weapon.x, weapon.y)
+      for (const pig of activePigs) {
+        if (!pig.alive || pig.state === PIG_STATE.DEAD) continue
+        var sdx = pig.x - weapon.x
+        var sdy = pig.y - weapon.y
+        if (Math.sqrt(sdx * sdx + sdy * sdy) < weapon.range * 1.2) {
+          pig.takeDamage(weapon.damage * 0.6, { x: sdx, y: -0.5 }, 4)
+        }
+      }
     }
 
     // 生成器更新
     PigSpawner.update(dt)
+
+    // 泥巴攻击处理（嘲讽猪扔泥巴降低玩家攻击力）
+    var mudThrows = PigSpawner.getPendingMudThrows()
+    if (mudThrows.length > 0) {
+      this._mudDebuffTimer = 3000
+      for (var mi = 0; mi < mudThrows.length; mi++) {
+        ParticleSystem.emitHit(mudThrows[mi].x, mudThrows[mi].y, 'broom')
+      }
+    }
+    if (this._mudDebuffTimer > 0) this._mudDebuffTimer -= dt
+
+    // Boss 技能处理
+    for (const pig of activePigs) {
+      if (!pig.typeConfig || !pig.typeConfig.isBoss) continue
+
+      // Boss 冲锋到底部：扣防线血量
+      if (pig._charging && pig.y > Screen.gameHeight - 40) {
+        this.defenseLine.takeDamage(3)
+        pig._charging = false
+        pig._bossPhase = 'idle'
+        pig.speed = pig.typeConfig.speed
+        pig._chargeTimer = 8000 + Math.random() * 4000
+        pig._slamReady = true
+        GameLoop.triggerHitStop(5)
+        DialogBubble.show('撞到防线了!', pig.x, pig.y - 50)
+      }
+
+      // Boss 捶地
+      if (pig._slamReady) {
+        pig._slamReady = false
+        this.defenseLine.takeDamage(2)
+        GameLoop.triggerHitStop(4)
+        ParticleSystem.emitExplosion(pig.x, Math.min(pig.y + 60, Screen.gameHeight - 20))
+        // 震飞周围小猪
+        for (const other of activePigs) {
+          if (other === pig || !other.alive || other.state === PIG_STATE.DEAD) continue
+          var sdx = other.x - pig.x
+          var sdy = other.y - pig.y
+          var sdist = Math.sqrt(sdx * sdx + sdy * sdy) || 1
+          if (sdist < 180) {
+            other.takeDamage(20, { x: sdx / sdist, y: -0.5 }, 8)
+          }
+        }
+        DialogBubble.show('地震啦!!', pig.x, pig.y - 50)
+      }
+    }
 
     // 逃出检测
     const escaped = PigSpawner.getEscapedPigs()
     for (const pig of escaped) {
       this.escapedCount++
       this.defenseLine.takeDamage(1)
-      DialogBubble.show('溜了溜了~', pig.x, Screen.gameHeight - 50)
+      // 小偷猪逃跑：扣金币
+      if (pig.typeConfig.abilities && pig.typeConfig.abilities.indexOf('steal_gold') >= 0) {
+        var stolen = Math.min(Storage.getGold(), pig.typeConfig.gold * 2)
+        Storage.addGold(-stolen)
+        DialogBubble.show('偷了 ' + stolen + ' 💰 溜了!', pig.x, Screen.gameHeight - 50)
+      } else {
+        DialogBubble.show('溜了溜了~', pig.x, Screen.gameHeight - 50)
+      }
     }
 
     // 防线破了
@@ -148,15 +267,6 @@ class BattleScene {
       this.state = 'defeat'
       this._stateTimer = 0
       return
-    }
-
-    // 升级触发（每波结束时）
-    if (PigSpawner.currentWave < PigSpawner.waves.length - 1) {
-      // 检查波次是否结束
-      if (PigSpawner.isWaveComplete() && this.state !== 'wave_end') {
-        this.state = 'wave_end'
-        this._waveEndTimer = 0
-      }
     }
 
     // 通关检测
@@ -185,43 +295,6 @@ class BattleScene {
 
     this.defenseLine.update(dt)
     window._defenseHPRatio = this.defenseLine.ratio
-  }
-
-  _updateWaveEnd(dt) {
-    this._waveEndTimer += dt
-    ParticleSystem.update(dt)
-    PigSpawner.update(dt)
-
-    if (this._waveEndTimer > 500 && !this._waitingForChoice) {
-      const choices = UpgradeSystem.getChoices(3)
-      if (choices.length > 0) {
-        this._showUpgradeChoices = choices
-        this._choiceCards = []
-        this._waitingForChoice = true
-      } else {
-        this.state = 'playing'
-        PigSpawner.startNextWave()
-      }
-    }
-
-    if (this._waitingForChoice) {
-      const touch = InputManager.getPrimaryTouch()
-      if (touch && !this._lastTapCheck) {
-        for (const card of this._choiceCards) {
-          if (card.containsPoint(touch.x, touch.y)) {
-            UpgradeSystem.applyUpgrade(card.upgrade.id)
-            this._waitingForChoice = false
-            this._showUpgradeChoices = null
-            this.state = 'playing'
-            PigSpawner.startNextWave()
-            break
-          }
-        }
-      }
-      this._lastTapCheck = !!touch
-    } else {
-      this._lastTapCheck = false
-    }
   }
 
   _updateEnding(dt) {
@@ -291,8 +364,6 @@ class BattleScene {
     // State overlays
     if (this.state === 'ready') {
       this._renderReadyOverlay(ctx)
-    } else if (this.state === 'wave_end' && this._waitingForChoice) {
-      this._renderUpgradeChoice(ctx)
     } else if (this.state === 'victory') {
       this._renderVictoryOverlay(ctx)
     } else if (this.state === 'defeat') {
@@ -322,69 +393,6 @@ class BattleScene {
     ctx.fillStyle = Theme.inkLight
     ctx.font = Screen.scale(15) + 'px sans-serif'
     ctx.fillText((this.levelConfig && this.levelConfig.name) || '', cx, Screen.gameHeight * 0.33)
-  }
-
-  _renderUpgradeChoice(ctx) {
-    var cx = Screen.gameWidth / 2
-
-    ctx.fillStyle = 'rgba(75, 53, 40, 0.45)'
-    ctx.fillRect(0, 0, Screen.gameWidth, Screen.gameHeight)
-
-    // Title
-    ctx.fillStyle = Theme.gold
-    ctx.font = 'bold ' + Screen.scale(22) + 'px sans-serif'
-    ctx.textAlign = 'center'
-    ctx.fillText('选择升级', cx + 1, Screen.gameHeight * 0.22 + 1)
-    ctx.fillStyle = Theme.ink
-    ctx.fillText('选择升级', cx, Screen.gameHeight * 0.22)
-
-    const choices = this._showUpgradeChoices || []
-    const cardW = Screen.scale(100)
-    const cardH = Screen.scale(120)
-    const totalW = choices.length * cardW + (choices.length - 1) * 15
-    const startX = (Screen.gameWidth - totalW) / 2 + cardW / 2
-    const cardY = Screen.gameHeight * 0.46
-
-    for (let i = 0; i < choices.length; i++) {
-      const cix = startX + i * (cardW + 15)
-
-      // Card (paper style)
-      Theme.drawPaperCard(ctx, cix - cardW / 2, cardY - cardH / 2, cardW, cardH, {
-        fill: Theme.paperWhite,
-        border: Theme.ink,
-        radius: 12,
-        shadowOffset: 4
-      })
-
-      // Icon
-      ctx.fillStyle = Theme.ink
-      ctx.font = Screen.scale(28) + 'px sans-serif'
-      ctx.textAlign = 'center'
-      ctx.fillText(choices[i].icon || '⚡', cix, cardY - 15)
-
-      // Name
-      ctx.fillStyle = Theme.ink
-      ctx.font = 'bold ' + Screen.scale(11) + 'px sans-serif'
-      ctx.fillText(choices[i].name, cix, cardY + 20)
-
-      // Description
-      ctx.fillStyle = Theme.inkLight
-      ctx.font = Screen.scale(9) + 'px sans-serif'
-      ctx.fillText(choices[i].desc || '', cix, cardY + 40)
-
-      if (!this._choiceCards) this._choiceCards = []
-      if (this._choiceCards.length <= i) {
-        const halfW = cardW / 2
-        const halfH = cardH / 2
-        this._choiceCards.push({
-          x: cix - halfW, y: cardY - halfH, w: cardW, h: cardH,
-          upgrade: choices[i],
-          containsPoint(px, py) {
-            return px >= this.x && px <= this.x + this.w && py >= this.y && py <= this.y + this.h
-          }
-        })
-      }
-    }
   }
 
   _renderVictoryOverlay(ctx) {

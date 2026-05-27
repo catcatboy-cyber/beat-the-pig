@@ -8,6 +8,8 @@ class HUDClass {
     this.wave = 0
     this.totalWaves = 0
     this.stars = 0
+    this.level = 0
+    this.levelName = ''
     this._dirty = true
     this._time = 0
   }
@@ -17,8 +19,11 @@ class HUDClass {
     this.displayGold = 0
     this.combo = 0
     this.maxCombo = 0
+    this.timer = (levelConfig.duration || 30) * 1000
     this.wave = 1
     this.totalWaves = levelConfig.waves.length
+    this.level = levelConfig.level
+    this.levelName = levelConfig.name || ''
     this.stars = 3
     this._dirty = true
     this._time = 0
@@ -32,6 +37,10 @@ class HUDClass {
 
   update(dt) {
     this._time += dt
+    if (this.timer > 0) {
+      this.timer -= dt
+      this._dirty = true
+    }
     if (this.displayGold < this.gold) {
       this.displayGold = Math.min(this.gold, this.displayGold + Math.ceil((this.gold - this.displayGold) * 0.1))
       this._dirty = true
@@ -57,12 +66,20 @@ class HUDClass {
 
     var midY = topY + barH / 2
 
-    // ── Gold (left) ──
-    ctx.fillStyle = Theme.ink
-    ctx.font = 'bold ' + Screen.scale(13) + 'px sans-serif'
+    // ── Level + Gold (left, stacked) ──
+    var leftX = barX + 12
     ctx.textAlign = 'left'
     ctx.textBaseline = 'middle'
-    ctx.fillText('💰 ' + this.displayGold, barX + 12, midY)
+
+    // Level number + name
+    ctx.fillStyle = Theme.ink
+    ctx.font = 'bold ' + Screen.scale(12) + 'px sans-serif'
+    ctx.fillText('第' + this.level + '关 ' + this.levelName, leftX, midY - 7)
+
+    // Gold
+    ctx.fillStyle = Theme.inkLight
+    ctx.font = Screen.scale(10) + 'px sans-serif'
+    ctx.fillText('💰 ' + this.displayGold, leftX, midY + 9)
 
     // ── Wave indicator (right) ──
     ctx.fillStyle = Theme.inkLight

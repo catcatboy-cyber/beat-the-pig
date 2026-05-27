@@ -16,6 +16,7 @@ class Particle {
     this.size = size; this.startSize = size
     this.color = color
     this.gravity = gravity || 0
+    this._active = true
   }
 
   update(dt) {
@@ -91,6 +92,15 @@ class ParticleSystemClass {
       speed: 3, life: 600, size: 6,
       colors: ['#FFD700', '#FFC107'],
       gravity: 0.5
+    })
+  }
+
+  emitExplosion(x, y) {
+    this.emit({
+      x, y, count: 25, angle: 0, spread: Math.PI * 2,
+      speed: 12, life: 500, size: 6,
+      colors: ['#FF4500', '#FF6600', '#FFD700', '#FFFFFF', '#FF0000'],
+      gravity: 0.3
     })
   }
 

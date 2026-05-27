@@ -62,10 +62,11 @@ class GameLoopClass {
     try {
       SceneManager.update(scaledDt)
       SceneManager.render(this.ctx)
-      InputManager.update()
     } catch (e) {
       console.error('[Frame Error]', e)
     }
+
+    InputManager.update()
 
     this.ctx.restore()
   }

@@ -48,6 +48,7 @@ class Hammer extends Weapon {
     const touch = InputManager.getPrimaryTouch()
     if (!touch) return
 
+    const hammerHeadX = this.x
     const hammerHeadY = this.y - 30
     const swingOffset = this._swinging
       ? Math.sin(this._swingPhase / 6 * Math.PI) * 15

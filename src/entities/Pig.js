@@ -40,9 +40,32 @@ class Pig {
     // 无敌帧（避免一帧多判）
     this.invincibleTimer = 0
 
-    // 特殊能力计时器
+    // 特殊能力状态
     this.abilityTimer = 0
     this.abilityCooldown = 0
+    this._crying = false
+    this._cryTimer = 0
+    this._speedActive = false
+    this._speedTimer = 0
+    this._mudThrowReady = false
+    this._cloneReady = false
+    this._charged = false
+    this._shouldSplit = false
+    this._shouldExplode = false
+    this._bounceTargets = []
+    this._isClone = false
+    this._shockTimer = 0
+    this._burnTimer = 0
+    this._burnDps = 0
+
+    // Boss 专属状态
+    this._weaknessCount = 0
+    this._stunned = false
+    this._stunTimer = 0
+    this._charging = false
+    this._chargeTimer = 0
+    this._slamReady = false
+    this._bossPhase = 'idle'
 
     // 受伤视觉
     this.injuryLevel = 0
@@ -86,6 +109,27 @@ class Pig {
     this.shakeTimer = 0
     this.abilityTimer = 0
     this.abilityCooldown = 0
+    this._crying = false
+    this._cryTimer = 0
+    this._speedActive = false
+    this._speedTimer = 0
+    this._mudThrowReady = false
+    this._cloneReady = false
+    this._charged = false
+    this._shouldSplit = false
+    this._shouldExplode = false
+    this._bounceTargets = []
+    this._isClone = false
+    this._shockTimer = 0
+    this._burnTimer = 0
+    this._burnDps = 0
+    this._weaknessCount = cfg.isBoss ? 3 : 0
+    this._stunned = false
+    this._stunTimer = 0
+    this._charging = false
+    this._chargeTimer = cfg.isBoss ? 8000 : 0
+    this._slamReady = false
+    this._bossPhase = 'idle'
     this.lastDialogTime = 0
     this.currentDialog = ''
     this._escaped = false
@@ -95,10 +139,23 @@ class Pig {
   }
 
   takeDamage(damage, knockDir, knockForce) {
-    if (!this._alive || this.invincibleTimer > 0) return false
-    if (this.typeConfig.isBoss && this.state !== 'stunned') {
-      // Boss 需要先破弱点（简化版：击中即受伤但有减伤）
-      damage *= 0.5
+    if (!this._alive || this.invincibleTimer > 0 || this.state === PIG_STATE.DEAD) return false
+    if (this.typeConfig.isBoss) {
+      if (this._stunned) {
+        damage *= 3
+      } else {
+        this._weaknessCount--
+        if (this._weaknessCount <= 0) {
+          this._stunned = true
+          this._stunTimer = 4000
+          this._bossPhase = 'stunned'
+          this._weaknessCount = 3
+          this.speed = 0
+          this.currentDialog = '我被破防了!!'
+          this.lastDialogTime = Date.now()
+        }
+        damage *= 0.3
+      }
     }
 
     this.hp -= damage
@@ -108,6 +165,12 @@ class Pig {
     this.knockbackVx = knockDir.x * (knockForce || 5)
     this.knockbackVy = knockDir.y * (knockForce || 5) - 3
     this.knockbackTimer = 8
+
+    // 哭包猪：被打后原地大哭
+    if (this.typeConfig.abilities && this.typeConfig.abilities.indexOf('cry_block') >= 0) {
+      this._crying = true
+      this._cryTimer = 2000
+    }
 
     this._updateEmotion()
     this._updateInjury()
@@ -127,16 +190,40 @@ class Pig {
 
     switch (this.state) {
       case PIG_STATE.WALKING:
-        this.y += this.speed * dtSec
+        if (!this._stunned && this._shockTimer <= 0) {
+          this.y += this.speed * dtSec
+        }
+        if (this._shockTimer > 0) {
+          this._shockTimer -= dt
+          this.speed = 0
+          if (this._shockTimer <= 0) {
+            this.speed = this.typeConfig.speed
+          }
+        }
+        if (this._burnTimer > 0) {
+          this._burnTimer -= dt
+          this.hp -= this._burnDps * dtSec
+          if (this.hp <= 0 && this.state !== PIG_STATE.DEAD) {
+            this.state = PIG_STATE.DEAD
+          }
+        }
         this._handleAbility(dt)
         break
       case PIG_STATE.KNOCKBACK:
+        if (this.typeConfig.isBoss && this._charging) {
+          this.state = PIG_STATE.WALKING
+          break
+        }
         this.x += this.knockbackVx * dtSec * 60
         this.y += this.knockbackVy * dtSec * 60
         this.knockbackTimer--
         if (this.knockbackTimer <= 0) {
           if (this.hp <= 0) {
             this.state = PIG_STATE.DEAD
+            if (this.typeConfig.abilities) {
+              if (this.typeConfig.abilities.indexOf('split_on_death') >= 0) this._shouldSplit = true
+              if (this.typeConfig.abilities.indexOf('explode_on_death') >= 0) this._shouldExplode = true
+            }
           } else {
             this.state = PIG_STATE.WALKING
           }
@@ -152,6 +239,18 @@ class Pig {
         break
     }
 
+    // x 轴边界限制（防止击退飞出屏幕）
+    var halfW = this.width / 2
+    var padding = 4
+    if (this.x < halfW + padding) {
+      this.x = halfW + padding
+      if (this.state === PIG_STATE.KNOCKBACK) this.knockbackVx = Math.abs(this.knockbackVx) * 0.4
+    }
+    if (this.x > Screen.gameWidth - halfW - padding) {
+      this.x = Screen.gameWidth - halfW - padding
+      if (this.state === PIG_STATE.KNOCKBACK) this.knockbackVx = -Math.abs(this.knockbackVx) * 0.4
+    }
+
     // 出界检测
     if (this.y > Screen.gameHeight + 50 && this.state === PIG_STATE.WALKING) {
       this._alive = false
@@ -162,39 +261,90 @@ class Pig {
   }
 
   _handleAbility(dt) {
+    if (this.typeConfig && this.typeConfig.isBoss) {
+      this._handleBossAbilities(dt)
+    }
     if (!this.typeConfig || !this.typeConfig.abilities) return
-    const abs = this.typeConfig.abilities
+    var abs = this.typeConfig.abilities
+    var dtSec = dt / 1000
 
-    if (abs.includes('speed_boost')) {
-      if (this.abilityCooldown <= 0) {
-        this.abilityTimer += dt
-        if (this.abilityTimer > 2000) {
-          // 每 2 秒冲刺一次
-          this.speed = this.typeConfig.speed * 1.8
-          setTimeout(() => { this.speed = this.typeConfig.speed }, 400)
-          this.abilityTimer = 0
-          this.abilityCooldown = 2000
-        }
+    // ── speed_boost: periodic dash ──
+    if (abs.indexOf('speed_boost') >= 0) {
+      this._speedTimer += dt
+      if (!this._speedActive && this._speedTimer > 2000) {
+        this._speedActive = true
+        this.speed = this.typeConfig.speed * 1.8
+        this._speedTimer = 0
+      }
+      if (this._speedActive && this._speedTimer > 400) {
+        this._speedActive = false
+        this.speed = this.typeConfig.speed
       }
     }
 
-    if (abs.includes('periodic_invisible')) {
-      this.abilityTimer += dt
-      this._invisible = this.abilityTimer % 3000 > 1500
+    // ── periodic_invisible ──
+    if (abs.indexOf('periodic_invisible') >= 0) {
+      this._invisible = (this._age % 3000) > 1500
     }
 
-    if (abs.includes('throw_mud')) {
+    // ── throw_mud: fires every 4s ──
+    if (abs.indexOf('throw_mud') >= 0) {
       if (this.abilityCooldown <= 0) {
-        // 扔泥巴逻辑由 BattleScene 处理
-        this._throwingMud = true
+        this._mudThrowReady = true
         this.abilityCooldown = 4000
       }
     }
 
-    if (abs.includes('spawn_clones')) {
-      if (this.abilityCooldown <= 0) {
-        this._spawningClones = true
+    // ── spawn_clones: every 5s ──
+    if (abs.indexOf('spawn_clones') >= 0) {
+      if (this.abilityCooldown <= 0 && !this._cloneReady) {
+        this._cloneReady = true
         this.abilityCooldown = 5000
+      }
+    }
+
+    // ── cry_block: freezes when hit, blocks pigs behind ──
+    if (abs.indexOf('cry_block') >= 0 && this._crying) {
+      this._cryTimer -= dt
+      this.speed = 0
+      if (this._cryTimer <= 0) {
+        this._crying = false
+        this.speed = this.typeConfig.speed
+      }
+    }
+  }
+
+  _handleBossAbilities(dt) {
+    // 眩晕计时
+    if (this._stunned) {
+      this._stunTimer -= dt
+      if (this._stunTimer <= 0) {
+        this._stunned = false
+        this._bossPhase = 'idle'
+        this._weaknessCount = 3
+        this.speed = this.typeConfig.speed
+        this._chargeTimer = Math.max(this._chargeTimer, 2000)
+      }
+      return
+    }
+
+    // 冲锋计时
+    this._chargeTimer -= dt
+    if (this._chargeTimer <= 0 && !this._charging) {
+      this._charging = true
+      this._bossPhase = 'charging'
+      this._chargeTimer = 1500
+      this.speed = this.typeConfig.speed * 4.5
+      this.currentDialog = '冲啊!!'
+      this.lastDialogTime = Date.now()
+    }
+    if (this._charging) {
+      if (this._chargeTimer <= 0) {
+        this._charging = false
+        this._bossPhase = 'idle'
+        this.speed = this.typeConfig.speed
+        this._chargeTimer = 8000 + Math.random() * 4000
+        this._slamReady = true
       }
     }
   }
@@ -279,6 +429,11 @@ class Pig {
     // 昵称 + 血条
     if (this.state !== PIG_STATE.DEAD) {
       this._drawNameAndHP(ctx, drawX, drawY)
+    }
+
+    // Boss 专属指示器
+    if (this.typeConfig && this.typeConfig.isBoss) {
+      this._drawBossIndicators(ctx, drawX, drawY)
     }
 
     // 台词气泡
@@ -500,6 +655,66 @@ class Pig {
     ctx.fillRect(cx - barW / 2, barY, barW * ratio, barH)
   }
 
+  _drawBossIndicators(ctx, cx, cy) {
+    var r = this.width / 2
+
+    // 弱点护盾指示器（3个圆点）
+    for (var i = 0; i < 3; i++) {
+      var angle = -Math.PI / 2 + (i / 3) * Math.PI * 2
+      var ix = cx + Math.cos(angle) * (r + 16)
+      var iy = cy + Math.sin(angle) * (r + 4)
+      var active = i >= this._weaknessCount || this._stunned
+
+      ctx.fillStyle = active ? '#888' : Theme.gold
+      ctx.strokeStyle = Theme.ink
+      ctx.lineWidth = 1.5
+      ctx.beginPath()
+      ctx.arc(ix, iy, 6, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.stroke()
+
+      if (active) {
+        ctx.strokeStyle = Theme.ink
+        ctx.lineWidth = 1.5
+        ctx.beginPath()
+        ctx.moveTo(ix - 3, iy - 3)
+        ctx.lineTo(ix + 3, iy + 3)
+        ctx.moveTo(ix + 3, iy - 3)
+        ctx.lineTo(ix - 3, iy + 3)
+        ctx.stroke()
+      }
+    }
+
+    // 冲锋状态：红色光环
+    if (this._charging) {
+      ctx.strokeStyle = '#FF0000'
+      ctx.lineWidth = 3
+      ctx.beginPath()
+      ctx.arc(cx, cy, r + 10, 0, Math.PI * 2)
+      ctx.stroke()
+      ctx.strokeStyle = 'rgba(255,0,0,0.3)'
+      ctx.lineWidth = 6
+      ctx.beginPath()
+      ctx.arc(cx, cy, r + 16, 0, Math.PI * 2)
+      ctx.stroke()
+    }
+
+    // 眩晕状态：旋转星星
+    if (this._stunned) {
+      var t = Date.now() / 200
+      for (var s = 0; s < 4; s++) {
+        var sa = t + (s / 4) * Math.PI * 2
+        var sx = cx + Math.cos(sa) * (r + 14)
+        var sy = cy + Math.sin(sa) * (r + 14)
+        ctx.fillStyle = '#FFD700'
+        ctx.font = '14px sans-serif'
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        ctx.fillText('⭐', sx, sy)
+      }
+    }
+  }
+
   _drawBubble(ctx, cx, cy) {
     const text = this.currentDialog
     ctx.font = `${Screen.scale(10)}px sans-serif`
@@ -554,8 +769,20 @@ class Pig {
     this._alive = false
     this._escaped = false
     this._invisible = false
-    this._throwingMud = false
-    this._spawningClones = false
+    this._shouldSplit = false
+    this._shouldExplode = false
+    this._bounceTargets = []
+    this._isClone = false
+    this._shockTimer = 0
+    this._burnTimer = 0
+    this._burnDps = 0
+    this._weaknessCount = 0
+    this._stunned = false
+    this._stunTimer = 0
+    this._charging = false
+    this._chargeTimer = 0
+    this._slamReady = false
+    this._bossPhase = 'idle'
     this.x = 0
     this.y = 0
     this.currentDialog = ''
