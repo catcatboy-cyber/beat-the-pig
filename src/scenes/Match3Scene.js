@@ -150,6 +150,12 @@ class Match3SceneClass {
             this._matches = newMatches
             this.state = 'matching'
             this._animTimer = 300
+          } else if (this._pigDefeated) {
+            this.state = 'victory'
+            this._animTimer = 1500
+          } else if (this._movesLeft <= 0) {
+            this.state = 'defeat'
+            this._animTimer = 1500
           } else if (!this.engine.hasValidMoves()) {
             this.engine.shuffle()
             this.state = 'idle'
@@ -211,8 +217,6 @@ class Match3SceneClass {
     if (this._pigHp <= 0) {
       this._pigHp = 0
       this._pigDefeated = true
-      this.state = 'victory'
-      this._animTimer = 1500
       Storage.incrementHitCount(this._pigName)
     }
   }
@@ -312,11 +316,6 @@ class Match3SceneClass {
         this._animTimer = 200
         this._swapProgress = 0
         this._selectedCell = null
-        // Check defeat
-        if (this._movesLeft <= 0 && !this._pigDefeated) {
-          this.state = 'defeat'
-          this._animTimer = 1500
-        }
       } else {
         // Shouldn't happen since canSwap checked, but swap back
         this.engine.swap(this._selectedCell.r, this._selectedCell.c, cell.r, cell.c)
