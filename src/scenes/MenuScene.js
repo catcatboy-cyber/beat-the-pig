@@ -7,9 +7,6 @@ class MenuScene {
     this._avatarPickerOpen = false
     this._statsOpen = false
     this._dialogEditorOpen = false
-    this._dialogAddMode = false
-    this._dialogAddName = ''
-    this._dialogEditTarget = ''
     this._tapHandlerRegistered = false
     this._avatars = ['🐷', '🐽', '🐗', '🐖', '🐸', '🐯', '🐱', '🐶', '🦊', '🐰', '🐼', '🐨', '🐮', '🦁', '🐔', '🐙', '🦄', '🐳', '👽', '🤖', '👻', '😈', '👾', '💩']
   }
@@ -407,75 +404,31 @@ class MenuScene {
 
   _openDialogEditor() {
     this._dialogEditorOpen = true
-    this._dialogAddMode = false
-    this._dialogAddName = ''
-    this._dialogEditTarget = ''
   }
 
-  _startAddDialog() {
+  _editCurrentDialog() {
     if (typeof wx.showKeyboard !== 'function') {
       wx.showModal({ title: '提示', content: '请升级微信版本', showCancel: false })
       return
     }
-    this._dialogAddMode = true
-    this._dialogAddName = ''
-    var self = this
-    var onComplete = function (res) {
-      wx.offKeyboardComplete(onComplete)
-      var name = (res && res.value || '').trim()
-      if (!name) {
-        self._dialogAddMode = false
-        return
-      }
-      self._dialogAddName = name
-      // Show keyboard again for dialog text
-      var onTextComplete = function (res2) {
-        wx.offKeyboardComplete(onTextComplete)
-        var text = (res2 && res2.value || '').trim()
-        if (text) {
-          Storage.setCustomDialog(self._dialogAddName, text)
-        }
-        self._dialogAddMode = false
-        self._dialogAddName = ''
-      }
-      wx.onKeyboardComplete(onTextComplete)
-      wx.showKeyboard({
-        defaultValue: self._dialogAddName + '的经典台词...',
-        maxLength: 30,
-        confirmText: '保存'
-      })
-    }
-    wx.onKeyboardComplete(onComplete)
-    wx.showKeyboard({
-      defaultValue: '',
-      maxLength: 8,
-      confirmText: '下一步'
-    })
-  }
-
-  _editDialog(name) {
-    if (typeof wx.showKeyboard !== 'function') return
-    this._dialogEditTarget = name
+    var nickname = Storage.getNickname()
     var self = this
     var onComplete = function (res) {
       wx.offKeyboardComplete(onComplete)
       var text = (res && res.value || '').trim()
+      Storage.setCustomDialog(nickname, text)
       if (text) {
-        Storage.setCustomDialog(name, text)
+        self._showToast('台词已保存')
+      } else {
+        self._showToast('台词已清除')
       }
-      self._dialogEditTarget = ''
     }
     wx.onKeyboardComplete(onComplete)
     wx.showKeyboard({
-      defaultValue: Storage.getCustomDialog(name),
+      defaultValue: Storage.getCustomDialog(nickname),
       maxLength: 30,
       confirmText: '保存'
     })
-  }
-
-  _deleteDialog(name) {
-    Storage.setCustomDialog(name, '')
-    this._showToast('已删除 ' + name + ' 的台词')
   }
 
   _renderDialogEditor(ctx) {
@@ -483,13 +436,10 @@ class MenuScene {
     ctx.fillRect(0, 0, Screen.gameWidth, Screen.gameHeight)
 
     var cx = Screen.gameWidth / 2
-    var panelW = Screen.scale(260)
-    var dialogs = Storage.getCustomDialogs()
-    var entries = Object.keys(dialogs)
-    var panelH = Screen.scale(Math.max(140, 80 + entries.length * 36))
-
+    var panelW = Screen.scale(250)
+    var panelH = Screen.scale(150)
     var panelX = cx - panelW / 2
-    var panelY = Screen.gameHeight * 0.15
+    var panelY = Screen.gameHeight * 0.22
 
     Theme.drawPaperCard(ctx, panelX, panelY, panelW, panelH, {
       fill: Theme.paperWhite,
@@ -501,70 +451,48 @@ class MenuScene {
     ctx.fillStyle = Theme.ink
     ctx.font = 'bold ' + Screen.scale(16) + 'px sans-serif'
     ctx.textAlign = 'center'
-    ctx.fillText('📝 自定义台词', cx, panelY + 26)
+    ctx.fillText('📝 自定义台词', cx, panelY + 28)
 
-    if (entries.length === 0) {
-      ctx.fillStyle = Theme.inkLight
-      ctx.font = Screen.scale(11) + 'px sans-serif'
-      ctx.fillText('还没添加任何台词', cx, panelY + 56)
-      ctx.fillText('为欠揍名单里的名字写一句经典台词', cx, panelY + 74)
-      ctx.fillText('被揍时有概率从猪嘴里说出来', cx, panelY + 90)
-    }
+    var nickname = Storage.getNickname()
+    ctx.fillStyle = Theme.inkLight
+    ctx.font = Screen.scale(11) + 'px sans-serif'
+    ctx.fillText('当前昵称: ' + nickname, cx, panelY + 54)
 
-    var startY = panelY + 44
-    this._dialogCells = []
-    for (var i = 0; i < entries.length; i++) {
-      var name = entries[i]
-      var text = dialogs[name]
-      var ey = startY + i * 36
-
-      // Name
+    var dialog = Storage.getCustomDialog(nickname)
+    if (dialog) {
       ctx.fillStyle = Theme.ink
-      ctx.font = 'bold ' + Screen.scale(12) + 'px sans-serif'
-      ctx.textAlign = 'left'
-      ctx.fillText(name, panelX + 20, ey + 14)
-
-      // Dialog preview
+      ctx.font = 'bold ' + Screen.scale(13) + 'px sans-serif'
+      ctx.fillText('"' + dialog + '"', cx, panelY + 80)
+    } else {
       ctx.fillStyle = Theme.inkLight
-      ctx.font = Screen.scale(10) + 'px sans-serif'
-      ctx.fillText('"' + (text.length > 15 ? text.substring(0, 15) + '...' : text) + '"', panelX + 80, ey + 14)
-
-      // Edit button
-      var editBtnX = panelX + panelW - 48
-      var editBtnW = 28
-      ctx.fillStyle = Theme.teal
-      ctx.fillRect(editBtnX, ey + 4, editBtnW, 22, 6)
-      ctx.fillStyle = Theme.paperWhite
-      ctx.font = Screen.scale(10) + 'px sans-serif'
-      ctx.textAlign = 'center'
-      ctx.fillText('✎', editBtnX + editBtnW / 2, ey + 16)
-
-      // Delete button
-      var delBtnX = editBtnX - 32
-      ctx.fillStyle = Theme.red
-      ctx.fillRect(delBtnX, ey + 4, editBtnW, 22, 6)
-      ctx.fillStyle = Theme.paperWhite
-      ctx.fillText('✕', delBtnX + editBtnW / 2, ey + 16)
-
-      this._dialogCells.push({ name: name, editX: editBtnX, editY: ey + 4, editW: editBtnW, editH: 22, delX: delBtnX, delY: ey + 4, delW: editBtnW, delH: 22 })
+      ctx.font = Screen.scale(12) + 'px sans-serif'
+      ctx.fillText('尚未设置', cx, panelY + 78)
     }
 
-    // Add button
-    var addBtnW = Screen.scale(60)
-    var addBtnH = Screen.scale(28)
-    var addBtnX = cx
-    var addBtnY = startY + entries.length * 36 + 16
-    Theme.drawPaperCard(ctx, addBtnX - addBtnW / 2, addBtnY, addBtnW, addBtnH, {
-      fill: Theme.gold,
+    ctx.fillStyle = Theme.inkLight
+    ctx.font = Screen.scale(10) + 'px sans-serif'
+    ctx.textAlign = 'center'
+    ctx.fillText('被揍时30%概率说出这句话', cx, panelY + 104)
+
+    // Edit button
+    var btnW = Screen.scale(140)
+    var btnH = Screen.scale(32)
+    var btnX = cx
+    var btnY = panelY + panelH - 20
+    Theme.drawPaperCard(ctx, btnX - btnW / 2, btnY - btnH / 2, btnW, btnH, {
+      fill: dialog ? Theme.teal : Theme.gold,
       border: Theme.ink,
       radius: 8,
       shadowOffset: 3
     })
-    ctx.fillStyle = Theme.ink
+    ctx.fillStyle = Theme.paperWhite
     ctx.font = 'bold ' + Screen.scale(12) + 'px sans-serif'
     ctx.textAlign = 'center'
-    ctx.fillText('+ 添加', addBtnX, addBtnY + addBtnH / 2 + 1)
-    this._dialogAddBtn = { x: addBtnX - addBtnW / 2, y: addBtnY, w: addBtnW, h: addBtnH }
+    ctx.textBaseline = 'middle'
+    ctx.fillText(dialog ? '✎ 修改台词' : '+ 写一句台词', btnX, btnY)
+    ctx.textBaseline = 'alphabetic'
+
+    this._dialogEditBtn = { x: btnX - btnW / 2, y: btnY - btnH / 2, w: btnW, h: btnH }
 
     ctx.fillStyle = Theme.inkLight
     ctx.font = Screen.scale(10) + 'px sans-serif'
@@ -618,22 +546,9 @@ class MenuScene {
         return
       }
       if (this._dialogEditorOpen) {
-        // Check dialog editor interactions
-        if (this._dialogAddBtn && touch.x >= this._dialogAddBtn.x && touch.x <= this._dialogAddBtn.x + this._dialogAddBtn.w && touch.y >= this._dialogAddBtn.y && touch.y <= this._dialogAddBtn.y + this._dialogAddBtn.h) {
-          this._startAddDialog()
+        if (this._dialogEditBtn && touch.x >= this._dialogEditBtn.x && touch.x <= this._dialogEditBtn.x + this._dialogEditBtn.w && touch.y >= this._dialogEditBtn.y && touch.y <= this._dialogEditBtn.y + this._dialogEditBtn.h) {
+          this._editCurrentDialog()
           return
-        }
-        var cells = this._dialogCells || []
-        for (var ci = 0; ci < cells.length; ci++) {
-          var c = cells[ci]
-          if (touch.x >= c.editX && touch.x <= c.editX + c.editW && touch.y >= c.editY && touch.y <= c.editY + c.editH) {
-            this._editDialog(c.name)
-            return
-          }
-          if (touch.x >= c.delX && touch.x <= c.delX + c.delW && touch.y >= c.delY && touch.y <= c.delY + c.delH) {
-            this._deleteDialog(c.name)
-            return
-          }
         }
         this._dialogEditorOpen = false
         return
