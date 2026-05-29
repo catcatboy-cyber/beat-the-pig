@@ -244,6 +244,8 @@ class BattleScene {
       // 击杀
       if (pig.hp <= 0) {
         this.totalKills++
+        // 欠揍名单计数
+        Storage.incrementHitCount(pig.nickname)
         // Boss 击杀记录
         if (pig.typeConfig.isBoss) {
           Storage.set('user.bossKills', (Storage.get('user.bossKills') || 0) + 1)

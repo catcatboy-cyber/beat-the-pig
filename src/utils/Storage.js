@@ -39,6 +39,7 @@ class StorageUtil {
         machinegun: { level: 0, special: false },
         poop: { level: 0, special: false }
       },
+      hitList: [],
       skins: {
         weaponSkins: [],
         pigOutfits: [],
@@ -175,6 +176,38 @@ class StorageUtil {
       delete this._cache.customDialogs[name]
     }
     this.save()
+  }
+
+  getHitList() {
+    return this._cache.hitList || []
+  }
+
+  addHitListName(name) {
+    if (!this._cache.hitList) this._cache.hitList = []
+    for (var i = 0; i < this._cache.hitList.length; i++) {
+      if (this._cache.hitList[i].name === name) return false
+    }
+    if (this._cache.hitList.length >= 20) return false
+    this._cache.hitList.push({ name: name, hits: 0 })
+    this.save()
+    return true
+  }
+
+  removeHitListName(name) {
+    if (!this._cache.hitList) return
+    this._cache.hitList = this._cache.hitList.filter(function (e) { return e.name !== name })
+    this.save()
+  }
+
+  incrementHitCount(name) {
+    if (!this._cache.hitList) return
+    for (var i = 0; i < this._cache.hitList.length; i++) {
+      if (this._cache.hitList[i].name === name) {
+        this._cache.hitList[i].hits++
+        this.save()
+        return
+      }
+    }
   }
 
   getAllData() {

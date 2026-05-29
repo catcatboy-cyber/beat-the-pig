@@ -149,13 +149,21 @@ class PigSpawnerClass {
     }
   }
 
+  _pickPigName() {
+    var hitList = Storage.getHitList()
+    if (hitList.length > 0 && Math.random() < 0.7) {
+      return Random.pick(hitList).name
+    }
+    return Storage.getNickname() || '小猪'
+  }
+
   _spawnPig() {
     if (this.holes.length === 0) return
     const hole = Random.pick(this.holes)
     const pos = hole.getSpawnPos()
     const typeInfo = Random.weightedPick(this.waveTypes)
     const pig = this.pool.acquire()
-    pig.init(typeInfo.id, pos.x, pos.y, hole.index)
+    pig.init(typeInfo.id, pos.x, pos.y, hole.index, this._pickPigName())
     this._activePigs.push(pig)
     this.wavePigSpawned++
   }

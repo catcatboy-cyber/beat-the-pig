@@ -7,6 +7,7 @@ class MenuScene {
     this._avatarPickerOpen = false
     this._statsOpen = false
     this._dialogEditorOpen = false
+    this._hitListOpen = false
     this._tapHandlerRegistered = false
     this._avatars = ['🐷', '🐽', '🐗', '🐖', '🐸', '🐯', '🐱', '🐶', '🦊', '🐰', '🐼', '🐨', '🐮', '🦁', '🐔', '🐙', '🦄', '🐳', '👽', '🤖', '👻', '😈', '👾', '💩']
   }
@@ -102,12 +103,20 @@ class MenuScene {
       () => { this._statsOpen = true }
     ))
 
-    // ── Row 4: Custom Dialog ──
-    var r4w = Screen.scale(200)
+    // ── Row 4: Hit List + Custom Dialog ──
+    var r4w = Screen.scale(115)
     var r4h = Screen.scale(36)
     var r4y = Screen.gameHeight * 0.77
+    var r4LeftX = cx - r4w / 2 - gap / 2
+    var r4RightX = cx + r4w / 2 + gap / 2
+
     this.buttons.push(new Button(
-      cx, r4y, r4w, r4h,
+      r4LeftX, r4y, r4w, r4h,
+      '📋 欠揍名单', '#FF3860',
+      () => { this._hitListOpen = true }
+    ))
+    this.buttons.push(new Button(
+      r4RightX, r4y, r4w, r4h,
       '📝 自定义台词', '#7B68EE',
       () => { this._openDialogEditor() }
     ))
@@ -500,6 +509,122 @@ class MenuScene {
     ctx.fillText('点击空白处关闭', cx, panelY + panelH + 16)
   }
 
+  _addHitListName() {
+    if (typeof wx.showKeyboard !== 'function') {
+      wx.showModal({ title: '提示', content: '请升级微信版本', showCancel: false })
+      return
+    }
+    var self = this
+    var onComplete = function (res) {
+      wx.offKeyboardComplete(onComplete)
+      var name = (res && res.value || '').trim()
+      if (!name) return
+      if (!Storage.addHitListName(name)) {
+        wx.showModal({ title: '提示', content: '名字已存在或名单已满(20个)', showCancel: false })
+      }
+    }
+    wx.onKeyboardComplete(onComplete)
+    wx.showKeyboard({
+      defaultValue: '',
+      maxLength: 8,
+      confirmText: '添加'
+    })
+  }
+
+  _renderHitList(ctx) {
+    ctx.fillStyle = 'rgba(75, 53, 40, 0.55)'
+    ctx.fillRect(0, 0, Screen.gameWidth, Screen.gameHeight)
+
+    var cx = Screen.gameWidth / 2
+    var panelW = Screen.scale(260)
+    var hitList = Storage.getHitList()
+    var panelH = Screen.scale(Math.max(140, 80 + hitList.length * 34))
+
+    var panelX = cx - panelW / 2
+    var panelY = Screen.gameHeight * 0.12
+
+    Theme.drawPaperCard(ctx, panelX, panelY, panelW, panelH, {
+      fill: Theme.paperWhite,
+      border: Theme.ink,
+      radius: 12,
+      shadowOffset: 5
+    })
+
+    ctx.fillStyle = Theme.ink
+    ctx.font = 'bold ' + Screen.scale(16) + 'px sans-serif'
+    ctx.textAlign = 'center'
+    ctx.fillText('📋 欠揍名单', cx, panelY + 26)
+
+    if (hitList.length === 0) {
+      ctx.fillStyle = Theme.inkLight
+      ctx.font = Screen.scale(11) + 'px sans-serif'
+      ctx.textAlign = 'center'
+      ctx.fillText('还没添加名字', cx, panelY + 56)
+      ctx.fillText('把你的烦恼取个名字...', cx, panelY + 74)
+      ctx.fillText('比如老板、甲方、前男友', cx, panelY + 92)
+    }
+
+    var startY = panelY + 42
+    this._hitListCells = []
+    for (var i = 0; i < hitList.length; i++) {
+      var entry = hitList[i]
+      var ey = startY + i * 34
+
+      // Number
+      ctx.fillStyle = Theme.inkLight
+      ctx.font = Screen.scale(10) + 'px sans-serif'
+      ctx.textAlign = 'right'
+      ctx.fillText((i + 1) + '.', panelX + 22, ey + 18)
+
+      // Name
+      ctx.fillStyle = Theme.ink
+      ctx.font = 'bold ' + Screen.scale(13) + 'px sans-serif'
+      ctx.textAlign = 'left'
+      ctx.fillText(entry.name, panelX + 30, ey + 18)
+
+      // Hit count
+      ctx.fillStyle = Theme.red
+      ctx.font = Screen.scale(11) + 'px sans-serif'
+      ctx.textAlign = 'right'
+      ctx.fillText('💢' + entry.hits + '次', panelX + panelW - 48, ey + 18)
+
+      // Delete button
+      var delX = panelX + panelW - 34
+      ctx.fillStyle = '#E0E0E0'
+      ctx.fillRect(delX, ey + 6, 20, 20, 5)
+      ctx.fillStyle = Theme.inkLight
+      ctx.font = Screen.scale(10) + 'px sans-serif'
+      ctx.textAlign = 'center'
+      ctx.fillText('✕', delX + 10, ey + 18)
+
+      this._hitListCells.push({ name: entry.name, delX: delX, delY: ey + 6, delW: 20, delH: 20 })
+    }
+
+    // Add button
+    var addBtnW = Screen.scale(60)
+    var addBtnH = Screen.scale(28)
+    var addBtnX = cx
+    var addBtnY = startY + hitList.length * 34 + 8
+    Theme.drawPaperCard(ctx, addBtnX - addBtnW / 2, addBtnY, addBtnW, addBtnH, {
+      fill: Theme.gold,
+      border: Theme.ink,
+      radius: 8,
+      shadowOffset: 3
+    })
+    ctx.fillStyle = Theme.ink
+    ctx.font = 'bold ' + Screen.scale(12) + 'px sans-serif'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText('+ 添加', addBtnX, addBtnY + addBtnH / 2 + 1)
+    ctx.textBaseline = 'alphabetic'
+    this._hitListAddBtn = { x: addBtnX - addBtnW / 2, y: addBtnY, w: addBtnW, h: addBtnH }
+
+    ctx.fillStyle = Theme.inkLight
+    ctx.font = Screen.scale(10) + 'px sans-serif'
+    ctx.textAlign = 'center'
+    ctx.fillText('点击空白处关闭  |  关卡中70%概率出现名单中的猪', cx, panelY + panelH + 16)
+  }
+
   onExit() {
     this._destroyGameClubButton()
   }
@@ -543,6 +668,23 @@ class MenuScene {
     if (touch && InputManager.justPressed()) {
       if (SignInPanel.visible) {
         SignInPanel.handleTap(touch.x, touch.y)
+        return
+      }
+      if (this._hitListOpen) {
+        if (this._hitListAddBtn && touch.x >= this._hitListAddBtn.x && touch.x <= this._hitListAddBtn.x + this._hitListAddBtn.w && touch.y >= this._hitListAddBtn.y && touch.y <= this._hitListAddBtn.y + this._hitListAddBtn.h) {
+          this._addHitListName()
+          return
+        }
+        var hcells = this._hitListCells || []
+        for (var hi = 0; hi < hcells.length; hi++) {
+          var hc = hcells[hi]
+          if (touch.x >= hc.delX && touch.x <= hc.delX + hc.delW && touch.y >= hc.delY && touch.y <= hc.delY + hc.delH) {
+            Storage.removeHitListName(hc.name)
+            this._showToast('已移除 ' + hc.name)
+            return
+          }
+        }
+        this._hitListOpen = false
         return
       }
       if (this._dialogEditorOpen) {
@@ -703,6 +845,8 @@ class MenuScene {
 
     // ── Stats panel ──
     if (this._statsOpen) { this._renderStatsPanel(ctx) }
+    // ── Hit list ──
+    if (this._hitListOpen) { this._renderHitList(ctx) }
     // ── Dialog editor ──
     if (this._dialogEditorOpen) { this._renderDialogEditor(ctx) }
 
