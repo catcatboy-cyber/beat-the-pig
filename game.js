@@ -61,6 +61,7 @@ require('./src/entities/DefenseLine.js')
 require('./src/systems/PigSpawner.js')
 require('./src/systems/CollisionSystem.js')
 require('./src/systems/ComboSystem.js')
+require('./src/systems/Match3Engine.js')
 require('./src/systems/UpgradeSystem.js')
 require('./src/systems/AdManager.js')
 require('./src/systems/AchievementTracker.js')
@@ -82,6 +83,7 @@ require('./src/scenes/MenuScene.js')
 require('./src/scenes/BattleScene.js')
 require('./src/scenes/ShopScene.js')
 require('./src/scenes/SettlementScene.js')
+require('./src/scenes/Match3Scene.js')
 
 // 启动诊断
 try { wx.showLoading({ title: '加载中...' }) } catch (e) {}
@@ -153,6 +155,7 @@ SceneManager.register('menu', MenuScene)
 SceneManager.register('battle', BattleScene)
 SceneManager.register('shop', ShopScene)
 SceneManager.register('settlement', SettlementScene)
+SceneManager.register('match3', Match3Scene)
 
 try {
   GameLoop.init(canvas, ctx)

@@ -51,21 +51,34 @@ class MenuScene {
       () => { SceneManager.switchTo('battle') }
     ))
 
-    // ── Row 2: Paired (shop | gold) ──
-    var r2w = Screen.scale(115)
-    var r2h = Screen.scale(42)
+    // ── Row 2: Trio (shop | match3 | gold) ──
+    var r2w = Screen.scale(78)
+    var r2h = Screen.scale(40)
     var r2y = Screen.gameHeight * 0.595
-    var r2LeftX = cx - r2w / 2 - gap / 2
-    var r2RightX = cx + r2w / 2 + gap / 2
+    var r2LeftX = cx - r2w - gap
+    var r2MidX = cx
+    var r2RightX = cx + r2w + gap
 
     this.buttons.push(new Button(
       r2LeftX, r2y, r2w, r2h,
-      '🏪 武器商店', '#00D4FF',
+      '🏪 商店', '#00D4FF',
       () => { SceneManager.switchTo('shop') }
     ))
     this.buttons.push(new Button(
+      r2MidX, r2y, r2w, r2h,
+      '🧩 消消揍', '#FF3860',
+      () => {
+        var dailyPlays = Storage.get('stats.match3DailyPlays') || 0
+        if (dailyPlays >= 5) {
+          wx.showModal({ title: '提示', content: '今日次数已用完，明天再来吧~', showCancel: false })
+          return
+        }
+        SceneManager.switchTo('match3')
+      }
+    ))
+    this.buttons.push(new Button(
       r2RightX, r2y, r2w, r2h,
-      '📺 领金币 +300', '#FFB800',
+      '📺 金币', '#FFB800',
       () => {
         AdManager.showRewardedVideo((watched) => {
           if (watched) {
@@ -94,7 +107,7 @@ class MenuScene {
       '🔊 音效', '#9E9E9E',
       () => {
         const on = AudioManager.toggle()
-        this.buttons[4].text = on ? '🔊 音效' : '🔇 静音'
+        this.buttons[5].text = on ? '🔊 音效' : '🔇 静音'
       }
     ))
     this.buttons.push(new Button(
