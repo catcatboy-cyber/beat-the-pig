@@ -27,7 +27,7 @@ class MenuScene {
     this._setupButtons()
 
     if (!Storage.getNickname()) {
-      Storage.setNickname('小猪')
+      this._createUserInfoButton()
     }
 
     // 签到自动弹窗
@@ -640,6 +640,54 @@ class MenuScene {
 
   onExit() {
     this._destroyGameClubButton()
+    this._destroyUserInfoButton()
+  }
+
+  _createUserInfoButton() {
+    if (this._userInfoBtn) return
+    try {
+      var self = this
+      var btnW = Screen.scale(180)
+      var btnH = Screen.scale(40)
+      this._userInfoBtn = wx.createUserInfoButton({
+        type: 'text',
+        text: '👤 微信一键登录',
+        style: {
+          left: Screen.gameWidth / 2 - btnW / 2,
+          top: Screen.gameHeight * 0.35,
+          width: btnW,
+          height: btnH,
+          lineHeight: btnH,
+          backgroundColor: '#4CAF50',
+          color: '#ffffff',
+          textAlign: 'center',
+          fontSize: 15,
+          borderRadius: 8
+        }
+      })
+      this._userInfoBtn.onTap(function (res) {
+        if (res.userInfo) {
+          var info = res.userInfo
+          Storage.setNickname(info.nickName || '小猪')
+          if (info.avatarUrl) {
+            Storage.setPhotoAvatar(info.avatarUrl)
+          }
+          self._showToast('欢迎 ' + (info.nickName || '小猪') + '!')
+        } else {
+          Storage.setNickname('小猪')
+        }
+        self._destroyUserInfoButton()
+      })
+    } catch (e) {
+      Storage.setNickname('小猪')
+    }
+  }
+
+  _destroyUserInfoButton() {
+    if (this._userInfoBtn) {
+      try { this._userInfoBtn.destroy() } catch (e) {}
+      this._userInfoBtn = null
+    }
   }
 
   _createGameClubButton() {
