@@ -3,12 +3,17 @@ class SettlementScene {
     this.data = null
     this.buttons = []
     this._animTime = 0
+    this._shareImagePath = ''
   }
 
   onEnter(data) {
     this.data = data || {}
     this.buttons = []
     this._animTime = 0
+    this._shareImagePath = ''
+
+    // Pre-render share card so tap handler can use it synchronously
+    this._generateShareCard()
 
     const cx = Screen.gameWidth / 2
     const gap = Screen.scale(10)
@@ -76,14 +81,133 @@ class SettlementScene {
     ))
   }
 
+  _generateShareCard() {
+    var self = this
+    var d = this.data
+    var nickname = Storage.getNickname()
+
+    var offscreenCanvas
+    try {
+      offscreenCanvas = wx.createOffscreenCanvas({ type: '2d', width: 500, height: 400 })
+    } catch (e) {
+      offscreenCanvas = null
+    }
+
+    if (offscreenCanvas) {
+      this._drawShareCard(offscreenCanvas, d, nickname)
+      offscreenCanvas.toTempFilePath({
+        success: function (res) {
+          self._shareImagePath = res.tempFilePath
+        },
+        fail: function () {
+          self._shareImagePath = ''
+        }
+      })
+    }
+  }
+
   _share() {
     var d = this.data
     var nickname = Storage.getNickname()
     wx.shareAppMessage({
-      title: '我把「' + nickname + '」揍飞了！得分 ' + (d.gold || 0) + '💰 ' + (d.maxCombo || 0) + '连击',
-      imageUrl: '',
+      title: '我把「' + nickname + '」揍飞了 ' + (d.kills || 0) + ' 次！',
+      imageUrl: this._shareImagePath || '',
       query: 'from=share&level=' + (d.level || 1)
     })
+  }
+
+  _drawShareCard(canvas, d, nickname) {
+    var ctx = canvas.getContext('2d')
+    var W = 500
+    var H = 400
+
+    // Background — paper texture color
+    ctx.fillStyle = '#FFF8E7'
+    ctx.fillRect(0, 0, W, H)
+
+    // Border
+    ctx.strokeStyle = '#4B3528'
+    ctx.lineWidth = 4
+    ctx.strokeRect(2, 2, W - 4, H - 4)
+
+    // Title bar
+    ctx.fillStyle = '#4B3528'
+    ctx.fillRect(4, 4, W - 8, 52)
+
+    ctx.fillStyle = '#FFD700'
+    ctx.font = 'bold 22px sans-serif'
+    ctx.textAlign = 'center'
+    ctx.fillText('💥 暴打小猪战报', W / 2, 38)
+
+    // Player info
+    var avatarY = 72
+    ctx.fillStyle = '#4B3528'
+    ctx.font = 'bold 15px sans-serif'
+    ctx.textAlign = 'left'
+    ctx.fillText('👤 ' + nickname, 24, avatarY + 10)
+
+    // Result badge
+    var badgeText = d.victory ? '🎉 通关!' : '💀 战败'
+    var badgeColor = d.victory ? '#4CAF50' : '#F44336'
+    ctx.fillStyle = badgeColor
+    ctx.font = 'bold 18px sans-serif'
+    ctx.textAlign = 'right'
+    ctx.fillText(badgeText, W - 24, avatarY + 10)
+
+    // Big emoji pig
+    var pigY = 160
+    ctx.font = '64px sans-serif'
+    ctx.textAlign = 'center'
+    var pigEmoji = d.victory ? '🐷' : '😈'
+    ctx.fillText(pigEmoji, W / 2, pigY)
+
+    // Pig expression label
+    ctx.fillStyle = '#4B3528'
+    ctx.font = 'bold 13px sans-serif'
+    ctx.fillText((d.stars >= 3 ? '被打成猪头了! ' : '') + '名字: ' + nickname, W / 2, pigY + 34)
+
+    // Stats
+    var statsY = 208
+    var stats = [
+      { label: '🎯 关卡', value: '第 ' + (d.level || 1) + ' 关' },
+      { label: '🪙 金币', value: (d.gold || 0) + ' 💰' },
+      { label: '💢 击杀', value: (d.kills || 0) + ' 只' }
+    ]
+    if (d.maxCombo > 1) {
+      stats.push({ label: '🔥 最高连击', value: (d.maxCombo || 0) + 'x' })
+    }
+
+    ctx.fillStyle = '#4B3528'
+    ctx.font = '14px sans-serif'
+    for (var i = 0; i < stats.length; i++) {
+      var sy = statsY + i * 28
+      ctx.textAlign = 'left'
+      ctx.fillText(stats[i].label, 36, sy + 10)
+      ctx.textAlign = 'right'
+      ctx.font = 'bold 14px sans-serif'
+      ctx.fillText(stats[i].value, W - 36, sy + 10)
+      ctx.font = '14px sans-serif'
+      if (i < stats.length - 1) {
+        ctx.strokeStyle = 'rgba(75, 53, 40, 0.1)'
+        ctx.lineWidth = 1
+        ctx.beginPath()
+        ctx.moveTo(36, sy + 18)
+        ctx.lineTo(W - 36, sy + 18)
+        ctx.stroke()
+      }
+    }
+
+    // CTA
+    var ctaY = 340
+    ctx.fillStyle = '#FF3860'
+    ctx.font = 'bold 16px sans-serif'
+    ctx.textAlign = 'center'
+    ctx.fillText('👇 扫码一起来暴打小猪!', W / 2, ctaY)
+
+    // Footer
+    ctx.fillStyle = '#9E9E9E'
+    ctx.font = '11px sans-serif'
+    ctx.fillText('暴打小猪 · 给你的烦恼取个名字', W / 2, H - 16)
   }
 
   update(dt) {
