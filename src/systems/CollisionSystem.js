@@ -7,58 +7,83 @@ class CollisionSystemClass {
     this.recentHits = []
     if (!weapon) return this.recentHits
 
-    const hitArea = weapon.getHitArea()
+    var hitArea = weapon.getHitArea()
     if (!hitArea) return this.recentHits
 
     if (!InputManager.isTouching() && !weapon._discharging && !weapon._launched && !weapon._thrown) {
       return this.recentHits
     }
 
-    for (const pig of pigs) {
-      if (!pig.alive || pig.invincibleTimer > 0) continue
+    var areas = Array.isArray(hitArea) ? hitArea : [hitArea]
 
-      let hit = false
-      let knockDir = { x: 0, y: 0 }
+    for (var ai = 0; ai < areas.length; ai++) {
+      var area = areas[ai]
+      if (!area) continue
 
-      if (hitArea.type === 'sector') {
-        hit = this._sectorVsAABB(hitArea, pig.aabb)
-        if (hit) {
-          knockDir = {
-            x: hitArea.direction.x,
-            y: Math.min(-0.3, hitArea.direction.y)
+      for (var pi = 0; pi < pigs.length; pi++) {
+        var pig = pigs[pi]
+        if (!pig.alive || pig.invincibleTimer > 0) continue
+
+        var hit = false
+        var knockDir = { x: 0, y: 0 }
+
+        if (area.type === 'sector') {
+          hit = this._sectorVsAABB(area, pig.aabb)
+          if (hit) {
+            knockDir = {
+              x: area.direction.x,
+              y: Math.min(-0.3, area.direction.y)
+            }
+          }
+        } else if (area.type === 'circle') {
+          hit = this._circleVsAABB(area, pig.aabb)
+          if (hit) {
+            var dx = pig.aabb.x + pig.aabb.w / 2 - area.x
+            var dy = pig.aabb.y + pig.aabb.h / 2 - area.y
+            var dist = Math.sqrt(dx * dx + dy * dy) || 1
+            knockDir = {
+              x: dx / dist,
+              y: Math.min(-0.5, dy / dist)
+            }
+            if (area.isSmash) {
+              knockDir.y = -1
+              knockDir.x *= 0.5
+            }
           }
         }
-      } else if (hitArea.type === 'circle') {
-        hit = this._circleVsAABB(hitArea, pig.aabb)
-        if (hit) {
-          const dx = pig.aabb.x + pig.aabb.w / 2 - hitArea.x
-          const dy = pig.aabb.y + pig.aabb.h / 2 - hitArea.y
-          const dist = Math.sqrt(dx * dx + dy * dy) || 1
-          knockDir = {
-            x: dx / dist,
-            y: Math.min(-0.5, dy / dist)
-          }
-          if (hitArea.isSmash) {
-            knockDir.y = -1  // 砸击：主要向上飞
-            knockDir.x *= 0.5
-          }
-        }
-      }
 
-      if (hit) {
-        const dmgDealt = pig.takeDamage(
-          weapon.damage,
-          knockDir,
-          weapon.knockbackForce
-        )
-        if (dmgDealt) {
-          this.recentHits.push({
-            pig,
-            weaponType: weapon.id,
-            x: pig.x,
-            y: pig.y,
-            isSmash: hitArea.isSmash || false
-          })
+        if (hit) {
+          // 子弹消费（穿透除外）
+          if (area._bulletRef) {
+            if (!area._bulletRef._penetrate) {
+              area._bulletRef.alive = false
+            }
+          }
+          // 火箭命中引爆
+          if (area._explodeOnHit && area._rocketRef) {
+            area._rocketRef._explode()
+          }
+          // 臭弹命中溅射
+          if (area._splashOnHit && area._poopRef) {
+            area._poopRef._splash(area._poopRef._poopX, area._poopRef._poopY)
+          }
+
+          var dmgDealt = pig.takeDamage(
+            weapon.damage,
+            knockDir,
+            weapon.knockbackForce
+          )
+          if (dmgDealt) {
+            this.recentHits.push({
+              pig: pig,
+              weaponType: weapon.id,
+              x: pig.x,
+              y: pig.y,
+              isSmash: area.isSmash || false,
+              isExplosive: area.isExplosion || false,
+              isPoison: area.isPoison || false
+            })
+          }
         }
       }
     }

@@ -10,6 +10,8 @@ class BattleScene {
     this._readyCountdown = 3
     this._magnetPigs = []
     this._mudDebuffTimer = 0
+    this._paused = false
+    this._nextUpgradeKills = 20
   }
 
   onEnter(data) {
@@ -22,12 +24,16 @@ class BattleScene {
     this.totalGold = 0
     this.totalKills = 0
     this._mudDebuffTimer = 0
+    this._paused = false
+    this._nextUpgradeKills = 20
+    this._pauseButtons = []
 
     WeaponSwitcher.init()
     PigSpawner.initLevel(this.levelConfig)
     this.defenseLine.init(this.levelConfig.defenseHP)
     ComboSystem.reset()
     UpgradeSystem.reset()
+    UpgradePanel.hide()
     HUD.init(this.levelConfig)
 
     // 预加载广告
@@ -36,16 +42,39 @@ class BattleScene {
 
   onExit() {
     PigSpawner.pool.releaseAll()
+    UpgradePanel.hide()
   }
 
   update(dt) {
+    // Upgrade panel blocks all gameplay
+    if (UpgradePanel.visible) {
+      if (!UpgradePanel.hasChoices()) {
+        console.warn('[BattleScene] UpgradePanel visible without choices; auto-hiding to avoid input lock')
+        UpgradePanel.hide()
+      } else if (this.state !== 'playing') {
+        UpgradePanel.hide()
+      }
+    }
+
+    if (UpgradePanel.visible) {
+      if (InputManager.justPressed()) {
+        var t = InputManager.getPrimaryTouch()
+        if (t) UpgradePanel.handleTap(t.x, t.y)
+      }
+      return
+    }
+
     switch (this.state) {
       case 'ready':
         this._updateReady(dt)
         break
       case 'playing':
+        if (this._checkPauseTrigger()) return
         this._updatePlaying(dt)
         break
+      case 'paused':
+        this._updatePaused(dt)
+        return
       case 'victory':
       case 'defeat':
         this._updateEnding(dt)
@@ -58,6 +87,7 @@ class BattleScene {
     HUD.update(dt)
     DamageNumber.update(dt)
     DialogBubble.update(dt)
+    AchievementTracker.update(dt)
   }
 
   _updateReady(dt) {
@@ -69,6 +99,35 @@ class BattleScene {
         this.state = 'playing'
       }
     }
+  }
+
+  _checkPauseTrigger() {
+    if (!InputManager.justPressed()) return false
+    var touch = InputManager.getPrimaryTouch()
+    if (!touch) return false
+    if (HUD.hitTestPause(touch.x, touch.y)) {
+      this.state = 'paused'
+      return true
+    }
+    return false
+  }
+
+  _updatePaused(dt) {
+    if (InputManager.justPressed()) {
+      var touch = InputManager.getPrimaryTouch()
+      if (!touch) return
+      // Check overlay buttons
+      var btns = this._pauseButtons || []
+      for (var i = 0; i < btns.length; i++) {
+        if (btns[i].containsPoint(touch.x, touch.y)) {
+          btns[i].onTap()
+          return
+        }
+      }
+      // Tap outside = resume
+      this.state = 'playing'
+    }
+    // Also resume by tapping pause button again
   }
 
   _updatePlaying(dt) {
@@ -120,6 +179,15 @@ class BattleScene {
       // 击杀
       if (pig.hp <= 0) {
         this.totalKills++
+        // Boss 击杀记录
+        if (pig.typeConfig.isBoss) {
+          Storage.set('user.bossKills', (Storage.get('user.bossKills') || 0) + 1)
+        }
+        // 每 N 杀触发升级选择
+        if (this.totalKills >= this._nextUpgradeKills) {
+          this._nextUpgradeKills += 20
+          UpgradePanel.show()
+        }
         ParticleSystem.emitStars(pig.x, pig.y)
         if (!pig.typeConfig.isBoss) {
           DialogBubble.show(
@@ -156,9 +224,15 @@ class BattleScene {
       }
 
       // 火箭炮：爆炸时附加燃烧
-      if (weaponId === 'rocket' && weapon._exploding) {
+      if (weaponId === 'rocket' && hit.isExplosive) {
         pig._burnTimer = weapon.config.burnDuration * 1000
         pig._burnDps = weapon.config.burnDamage
+      }
+
+      // 臭弹：溅射时附加中毒
+      if (weaponId === 'poop' && hit.isPoison) {
+        pig._poisonTimer = weapon.config.poisonDuration * 1000
+        pig._poisonDps = weapon.config.poisonDamage
       }
 
       // 拖鞋：击中后弹射到最近的猪
@@ -311,6 +385,21 @@ class BattleScene {
         Storage.set('user.currentLevel', levelNum + 1)
         Storage.set('user.totalKills', (Storage.get('user.totalKills') || 0) + this.totalKills)
 
+        // 成就检测
+        AchievementTracker.check('totalKills', Storage.get('user.totalKills'))
+        AchievementTracker.check('maxCombo', ComboSystem.getMaxCombo())
+        AchievementTracker.check('maxLevel', levelNum)
+        AchievementTracker.check('totalGold', Storage.getGold())
+        if (this.totalKills > 0 && PigSpawner.bossSpawned) {
+          AchievementTracker.check('bossKills', (Storage.get('user.bossKills') || 0) + 1)
+        }
+        if (this.defenseLine.ratio >= 1.0) {
+          AchievementTracker.check('perfectDefense', 1)
+        }
+
+        // 更新排行榜
+        RankManager.autoUpdate()
+
         // 插屏广告
         if (AdManager.shouldShowInterstitial()) {
           AdManager.showInterstitial()
@@ -325,6 +414,9 @@ class BattleScene {
           stars: this.defenseLine.ratio >= 0.9 ? 3 : this.defenseLine.ratio >= 0.6 ? 2 : 1
         })
       } else if (this.state === 'defeat') {
+        Storage.set('user.totalKills', (Storage.get('user.totalKills') || 0) + this.totalKills)
+        AchievementTracker.check('totalKills', Storage.get('user.totalKills'))
+        AchievementTracker.check('maxCombo', ComboSystem.getMaxCombo())
         SceneManager.switchTo('settlement', {
           victory: false,
           level: levelNum,
@@ -361,9 +453,17 @@ class BattleScene {
     // Dialog bubbles
     DialogBubble.render(ctx)
 
+    // Upgrade panel (on top of everything)
+    UpgradePanel.render(ctx)
+
+    // Achievement toast
+    AchievementTracker.renderToast(ctx)
+
     // State overlays
     if (this.state === 'ready') {
       this._renderReadyOverlay(ctx)
+    } else if (this.state === 'paused') {
+      this._renderPauseOverlay(ctx)
     } else if (this.state === 'victory') {
       this._renderVictoryOverlay(ctx)
     } else if (this.state === 'defeat') {
@@ -423,6 +523,74 @@ class BattleScene {
     ctx.fillText('防线被突破!', cx + 1, cy + 1)
     ctx.fillStyle = Theme.ink
     ctx.fillText('防线被突破!', cx, cy)
+  }
+
+  _renderPauseOverlay(ctx) {
+    var cx = Screen.gameWidth / 2
+    var cy = Screen.gameHeight / 2
+
+    ctx.fillStyle = 'rgba(75, 53, 40, 0.5)'
+    ctx.fillRect(0, 0, Screen.gameWidth, Screen.gameHeight)
+
+    // Panel
+    var panelW = Screen.scale(220)
+    var panelH = Screen.scale(200)
+    var panelX = cx - panelW / 2
+    var panelY = cy - panelH / 2 - 20
+
+    Theme.drawPaperCard(ctx, panelX, panelY, panelW, panelH, {
+      fill: Theme.paperWhite,
+      border: Theme.ink,
+      radius: 12,
+      shadowOffset: 5
+    })
+
+    // Title
+    ctx.fillStyle = Theme.ink
+    ctx.font = 'bold ' + Screen.scale(22) + 'px sans-serif'
+    ctx.textAlign = 'center'
+    ctx.fillText('⏸ 暂停', cx, panelY + 36)
+
+    // Buttons
+    var btnW = Screen.scale(170)
+    var btnH = Screen.scale(38)
+    var btnX = cx - btnW / 2
+    var btnStartY = panelY + 62
+    var btnGap = Screen.scale(10)
+
+    var self = this
+    var btns = [
+      { label: '▶ 继续游戏', color: Theme.teal, action: function () { self.state = 'playing' } },
+      { label: '🔄 重新开始', color: Theme.gold, action: function () { self._restartLevel() } },
+      { label: '🚪 返回菜单', color: '#9E9E9E', action: function () { SceneManager.switchTo('menu') } }
+    ]
+
+    this._pauseButtons = []
+    for (var i = 0; i < btns.length; i++) {
+      var by = btnStartY + i * (btnH + btnGap)
+      var btn = new Button(cx, by, btnW, btnH, btns[i].label, btns[i].color, btns[i].action)
+      btn.render(ctx)
+      this._pauseButtons.push(btn)
+    }
+  }
+
+  _restartLevel() {
+    this.state = 'playing'
+    UpgradePanel.hide()
+    PigSpawner.pool.releaseAll()
+    const levelNum = this.levelConfig.level
+    this.levelConfig = LevelConfig.getLevel(levelNum)
+    this.escapedCount = 0
+    this.totalGold = 0
+    this.totalKills = 0
+    this._mudDebuffTimer = 0
+    this.defenseLine.init(this.levelConfig.defenseHP)
+    PigSpawner.initLevel(this.levelConfig)
+    ComboSystem.reset()
+    UpgradeSystem.reset()
+    this._nextUpgradeKills = 20
+    this._pauseButtons = []
+    HUD.init(this.levelConfig)
   }
 }
 

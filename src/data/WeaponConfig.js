@@ -143,6 +143,54 @@ const WeaponConfig = {
     burnDamage: 10,
     burnDuration: 3,
     knockbackForce: 25
+  },
+  machinegun: {
+    id: 'machinegun',
+    name: '机关枪',
+    icon: '🔫',
+    unlockLevel: 10,
+    unlockCost: 300,
+    type: 'rapid_fire',
+    upgrades: [
+      { level: 1, damage: 15, range: 0, speed: 5.0, cost: 0, desc: '基础机关枪' },
+      { level: 2, damage: 19, range: 0, speed: 5.5, cost: 400, desc: '射速+10%' },
+      { level: 3, damage: 23, range: 0, speed: 6.0, cost: 800, desc: '伤害+21%' },
+      { level: 4, damage: 27, range: 0, speed: 6.5, cost: 1500, desc: '射速+8%' },
+      { level: 5, damage: 32, range: 0, speed: 7.0, cost: 3000, desc: '伤害+19%' }
+    ],
+    special: {
+      name: '加特林',
+      cost: 5000,
+      desc: '射速翻倍，子弹穿透小猪'
+    },
+    bulletSpeed: 800,
+    bulletSize: 6,
+    knockbackForce: 2
+  },
+  poop: {
+    id: 'poop',
+    name: '臭弹',
+    icon: '💩',
+    unlockLevel: 35,
+    unlockCost: 1200,
+    type: 'throw_arc',
+    upgrades: [
+      { level: 1, damage: 40, range: 60, speed: 0.50, cost: 0, desc: '基础臭弹' },
+      { level: 2, damage: 48, range: 65, speed: 0.53, cost: 500, desc: '毒伤+25%' },
+      { level: 3, damage: 58, range: 70, speed: 0.56, cost: 1000, desc: '溅射半径+10%' },
+      { level: 4, damage: 70, range: 75, speed: 0.63, cost: 2000, desc: '冷却-12%' },
+      { level: 5, damage: 85, range: 85, speed: 0.71, cost: 3500, desc: '伤害+21%' }
+    ],
+    special: {
+      name: '生化弹',
+      cost: 5000,
+      desc: '中毒时间翻倍（6秒），毒猪互相传染'
+    },
+    poisonDamage: 10,
+    poisonDuration: 3,
+    splashRadius: 60,
+    gravity: 600,
+    knockbackForce: 6
   }
 }
 

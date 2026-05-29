@@ -9,7 +9,6 @@ class SettlementScene {
     this.data = data || {}
     this.buttons = []
     this._animTime = 0
-    this._doubleGoldClaimed = false
 
     const cx = Screen.gameWidth / 2
     const gap = Screen.scale(10)
@@ -26,7 +25,6 @@ class SettlementScene {
             if (watched) {
               Storage.addGold(baseGold)
               this.data.gold = baseGold * 2
-              this._doubleGoldClaimed = true
             }
           })
         }

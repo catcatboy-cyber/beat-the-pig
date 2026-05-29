@@ -6,7 +6,9 @@ class ShopScene {
       { id: 'weapons', name: '武器', icon: '🔨' },
       { id: 'skins', name: '皮肤', icon: '🎨' },
       { id: 'effects', name: '特效', icon: '✨' },
-      { id: 'voices', name: '语音', icon: '🎤' }
+      { id: 'voices', name: '语音', icon: '🎤' },
+      { id: 'outfits', name: '装扮', icon: '👗' },
+      { id: 'backgrounds', name: '背景', icon: '🖼️' }
     ]
     this._scrollY = 0
     this._maxScroll = 0
@@ -116,6 +118,15 @@ class ShopScene {
       Storage.setWeaponLevel(item.weaponId, newLevel)
       var wi = WeaponSwitcher.weaponInstances[item.weaponId]
       if (wi) wi.reloadStats()
+      // 成就检测: any weapon max level
+      var maxLvCount = 0
+      var weaponData = Storage.get('weapons') || {}
+      for (var wk in weaponData) {
+        if (weaponData[wk] && weaponData[wk].level >= 5) maxLvCount++
+      }
+      if (typeof AchievementTracker !== 'undefined') {
+        AchievementTracker.check('weaponMaxLevel', maxLvCount)
+      }
     } else if (item.type === 'weapon_special') {
       Storage.spendGold(item.cost)
       Storage.unlockWeaponSpecial(item.weaponId)
@@ -134,6 +145,16 @@ class ShopScene {
       var packs = Storage.get('skins.voicePacks') || []
       packs.push(item.id)
       Storage.set('skins.voicePacks', packs)
+    } else if (item.type === 'outfit') {
+      Storage.spendGold(item.cost)
+      var outfits = Storage.get('skins.pigOutfits') || []
+      outfits.push(item.id)
+      Storage.set('skins.pigOutfits', outfits)
+    } else if (item.type === 'background') {
+      Storage.spendGold(item.cost)
+      var bgs = Storage.get('skins.backgrounds') || []
+      bgs.push(item.id)
+      Storage.set('skins.backgrounds', bgs)
     }
     this._buildShopItems()
   }
@@ -148,6 +169,8 @@ class ShopScene {
       case 'skins': this._buildSkinItems(startY, itemH); break
       case 'effects': this._buildEffectItems(startY, itemH); break
       case 'voices': this._buildVoiceItems(startY, itemH); break
+      case 'outfits': this._buildOutfitItems(startY, itemH); break
+      case 'backgrounds': this._buildBackgroundItems(startY, itemH); break
     }
     this._maxScroll = Math.max(0, this._shopItems.length * itemH - Screen.gameHeight * 0.68)
   }
@@ -240,6 +263,38 @@ class ShopScene {
         desc: owned ? '已拥有' : vp.desc,
         cost: owned ? 0 : vp.cost, y: cy, id: vp.id, type: 'voice',
         btn: owned ? null : new Button(Screen.gameWidth * 0.78, 0, 72, 28, vp.cost + '💰', '#FFB800', function () {})
+      })
+    }
+  }
+
+  _buildOutfitItems(startY, itemH) {
+    this._shopItems = []
+    var outfits = ShopConfig.pigOutfits || []
+    for (var i = 0; i < outfits.length; i++) {
+      var outfit = outfits[i]
+      var owned = (Storage.get('skins.pigOutfits') || []).indexOf(outfit.id) >= 0
+      var cy = startY + i * itemH
+      this._shopItems.push({
+        label: outfit.emoji + ' ' + outfit.name,
+        desc: owned ? '已拥有' : outfit.desc,
+        cost: owned ? 0 : outfit.cost, y: cy, id: outfit.id, type: 'outfit',
+        btn: owned ? null : new Button(Screen.gameWidth * 0.78, 0, 72, 28, outfit.cost + '💰', '#FFB800', function () {})
+      })
+    }
+  }
+
+  _buildBackgroundItems(startY, itemH) {
+    this._shopItems = []
+    var bgs = ShopConfig.backgrounds || []
+    for (var i = 0; i < bgs.length; i++) {
+      var bg = bgs[i]
+      var owned = (Storage.get('skins.backgrounds') || []).indexOf(bg.id) >= 0
+      var cy = startY + i * itemH
+      this._shopItems.push({
+        label: bg.name,
+        desc: owned ? '已拥有' : bg.desc,
+        cost: owned ? 0 : bg.cost, y: cy, id: bg.id, type: 'background',
+        btn: owned ? null : new Button(Screen.gameWidth * 0.78, 0, 72, 28, bg.cost + '💰', '#FFB800', function () {})
       })
     }
   }

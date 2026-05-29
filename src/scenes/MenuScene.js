@@ -5,12 +5,14 @@ class MenuScene {
     this._titleTarget = 0
     this._initialized = false
     this._avatarPickerOpen = false
+    this._statsOpen = false
     this._tapHandlerRegistered = false
     this._avatars = ['🐷', '🐽', '🐗', '🐖', '🐸', '🐯', '🐱', '🐶', '🦊', '🐰', '🐼', '🐨', '🐮', '🦁', '🐔', '🐙', '🦄', '🐳', '👽', '🤖', '👻', '😈', '👾', '💩']
   }
 
   onEnter() {
-    this._createGameClubButton()
+    var self = this
+    setTimeout(function () { self._createGameClubButton() }, 500)
     this._registerTapHandler()
     this._avatarPickerOpen = false
     if (this._initialized) {
@@ -24,6 +26,11 @@ class MenuScene {
 
     if (!Storage.getNickname()) {
       Storage.setNickname('小猪')
+    }
+
+    // 签到自动弹窗
+    if (SignInPanel.shouldAutoShow()) {
+      SignInPanel.show(true)
     }
   }
 
@@ -67,25 +74,31 @@ class MenuScene {
       }
     ))
 
-    // ── Row 3: Paired (nickname | sound) ──
-    var r3w = Screen.scale(115)
+    // ── Row 3: Paired (nickname | sound | stats) ──
+    var r3w = Screen.scale(76)
     var r3h = Screen.scale(36)
     var r3y = Screen.gameHeight * 0.69
-    var r3LeftX = cx - r3w / 2 - gap / 2
-    var r3RightX = cx + r3w / 2 + gap / 2
+    var r3LeftX = cx - r3w - gap
+    var r3MidX = cx
+    var r3RightX = cx + r3w + gap
 
     this.buttons.push(new Button(
       r3LeftX, r3y, r3w, r3h,
-      '✏️ 改昵称', '#7B68EE',
+      '✏️ 改名', '#7B68EE',
       () => { this._changeNickname() }
     ))
     this.buttons.push(new Button(
-      r3RightX, r3y, r3w, r3h,
+      r3MidX, r3y, r3w, r3h,
       '🔊 音效', '#9E9E9E',
       () => {
         const on = AudioManager.toggle()
         this.buttons[4].text = on ? '🔊 音效' : '🔇 静音'
       }
+    ))
+    this.buttons.push(new Button(
+      r3RightX, r3y, r3w, r3h,
+      '🏆 战绩', '#FFB800',
+      () => { this._statsOpen = true }
     ))
   }
 
@@ -211,6 +224,73 @@ class MenuScene {
         action: 'emoji'
       })
     }
+  }
+
+  _renderStatsPanel(ctx) {
+    ctx.fillStyle = 'rgba(75, 53, 40, 0.55)'
+    ctx.fillRect(0, 0, Screen.gameWidth, Screen.gameHeight)
+
+    var cx = Screen.gameWidth / 2
+    var panelW = Screen.scale(240)
+    var panelH = Screen.scale(240)
+    var panelX = cx - panelW / 2
+    var panelY = Screen.gameHeight * 0.22
+
+    Theme.drawPaperCard(ctx, panelX, panelY, panelW, panelH, {
+      fill: Theme.paperWhite,
+      border: Theme.ink,
+      radius: 12,
+      shadowOffset: 5
+    })
+
+    ctx.fillStyle = Theme.ink
+    ctx.font = 'bold ' + Screen.scale(18) + 'px sans-serif'
+    ctx.textAlign = 'center'
+    ctx.fillText('🏆 我的战绩', cx, panelY + 30)
+
+    var stats = [
+      { label: '最高关卡', value: '第 ' + (Storage.get('user.maxLevel') || 1) + ' 关' },
+      { label: '累计击杀', value: (Storage.get('user.totalKills') || 0) + ' 只' },
+      { label: '最高连击', value: (Storage.get('user.maxCombo') || 0) + 'x' },
+      { label: '游玩天数', value: (Storage.get('user.playDays') || 1) + ' 天' },
+      { label: '解锁成就', value: (Storage.get('stats.achievements') || []).length + ' 个' }
+    ]
+
+    var statsStartY = panelY + 48
+    for (var i = 0; i < stats.length; i++) {
+      var sy = statsStartY + i * 34
+      ctx.fillStyle = Theme.inkLight
+      ctx.font = Screen.scale(12) + 'px sans-serif'
+      ctx.textAlign = 'left'
+      ctx.fillText(stats[i].label, panelX + 24, sy)
+      ctx.fillStyle = Theme.ink
+      ctx.font = 'bold ' + Screen.scale(13) + 'px sans-serif'
+      ctx.textAlign = 'right'
+      ctx.fillText(stats[i].value, panelX + panelW - 24, sy)
+    }
+
+    // Achievements list
+    var achStartY = statsStartY + stats.length * 34 + 8
+    ctx.fillStyle = Theme.inkLight
+    ctx.font = Screen.scale(11) + 'px sans-serif'
+    ctx.textAlign = 'left'
+    ctx.fillText('已解锁成就:', panelX + 24, achStartY)
+
+    var unlocked = Storage.get('stats.achievements') || []
+    var achText = ''
+    for (var j = 0; j < Math.min(unlocked.length, 10); j++) {
+      var ach = AchievementConfig.find(function (a) { return a.id === unlocked[j] })
+      if (ach) achText += ach.icon
+    }
+    if (unlocked.length === 0) achText = '暂无'
+    ctx.fillStyle = Theme.ink
+    ctx.font = Screen.scale(14) + 'px sans-serif'
+    ctx.fillText(achText, panelX + 24, achStartY + 20)
+
+    ctx.fillStyle = Theme.inkLight
+    ctx.font = Screen.scale(10) + 'px sans-serif'
+    ctx.textAlign = 'center'
+    ctx.fillText('点击空白处关闭', cx, panelY + panelH + 20)
   }
 
   _getAvatarImage() {
@@ -348,8 +428,18 @@ class MenuScene {
       btn.update(dt)
     }
 
+    SignInPanel.update(dt)
+
     const touch = InputManager.getPrimaryTouch()
     if (touch && InputManager.justPressed()) {
+      if (SignInPanel.visible) {
+        SignInPanel.handleTap(touch.x, touch.y)
+        return
+      }
+      if (this._statsOpen) {
+        this._statsOpen = false
+        return
+      }
       if (this._avatarPickerOpen) {
         const cell = this._findAvatarCell(touch.x, touch.y)
         if (cell) {
@@ -493,6 +583,12 @@ class MenuScene {
         btn.render(ctx)
       }
     }
+
+    // ── Stats panel ──
+    if (this._statsOpen) { this._renderStatsPanel(ctx) }
+
+    // ── Sign-in panel (on top) ──
+    SignInPanel.render(ctx)
 
     // ── Toast ──
     if (this._toastTimer > 0) {

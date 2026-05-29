@@ -279,7 +279,7 @@ const LevelConfig = {
       : stage === 'advanced' ? 3
       : stage === 'expert' ? 4
       : 5
-    const duration = 40 + stage === 'hell' ? 20 : stage === 'expert' ? 10 : 0
+    const duration = 40 + (stage === 'hell' ? 20 : stage === 'expert' ? 10 : 0)
     const interval = Math.max(0.5, 1.8 - num * 0.01)
 
     const availableTypes = []

@@ -9,6 +9,7 @@ class AdManagerClass {
     this.dailyRewardedCount = 0
     this.isFirstDay = true
     this._rewardedReady = false
+    this._adsWatched = 0
   }
 
   init() {
@@ -35,6 +36,10 @@ class AdManagerClass {
       })
       this.rewardedVideoAd.onClose((res) => {
         if (res && res.isEnded && this.rewardCallback) {
+          this._adsWatched++
+          if (typeof AchievementTracker !== 'undefined') {
+            AchievementTracker.check('adsWatched', this._adsWatched)
+          }
           this.rewardCallback(true)
         } else if (this.rewardCallback) {
           this.rewardCallback(false)
@@ -82,6 +87,10 @@ class AdManagerClass {
   showRewardedVideo(callback) {
     // 开发模式直接发奖励
     if (!this.rewardedVideoAd) {
+      this._adsWatched++
+      if (typeof AchievementTracker !== 'undefined') {
+        AchievementTracker.check('adsWatched', this._adsWatched)
+      }
       setTimeout(() => { if (callback) callback(true) }, 300)
       return
     }

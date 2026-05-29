@@ -35,7 +35,9 @@ class StorageUtil {
         swatter: { level: 0, special: false },
         taser: { level: 0, special: false },
         slipper: { level: 0, special: false },
-        rocket: { level: 0, special: false }
+        rocket: { level: 0, special: false },
+        machinegun: { level: 0, special: false },
+        poop: { level: 0, special: false }
       },
       skins: {
         weaponSkins: [],
@@ -108,11 +110,16 @@ class StorageUtil {
     return this._cache.weapons[weaponId] ? this._cache.weapons[weaponId].level : 0
   }
 
+  getWeaponSpecial(weaponId) {
+    return this._cache.weapons[weaponId] ? this._cache.weapons[weaponId].special : false
+  }
+
   setWeaponLevel(weaponId, level) {
-    if (this._cache.weapons[weaponId]) {
-      this._cache.weapons[weaponId].level = level
-      this.save()
+    if (!this._cache.weapons[weaponId]) {
+      this._cache.weapons[weaponId] = { level: 0, special: false }
     }
+    this._cache.weapons[weaponId].level = level
+    this.save()
   }
 
   unlockWeaponSpecial(weaponId) {

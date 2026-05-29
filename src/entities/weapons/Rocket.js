@@ -22,7 +22,8 @@ class Rocket extends Weapon {
         x: this._explodeX,
         y: this._explodeY,
         radius: this.config.explosionRadius,
-        isSmash: true
+        isSmash: true,
+        isExplosion: true
       }
     }
     if (this._launched) {
@@ -31,7 +32,9 @@ class Rocket extends Weapon {
         x: this._rocketX,
         y: this._rocketY,
         radius: 12,
-        isSmash: false
+        isSmash: false,
+        _explodeOnHit: true,
+        _rocketRef: this
       }
     }
     return null
@@ -89,17 +92,13 @@ class Rocket extends Weapon {
   }
 
   _launch() {
+    // 从手指位置向上发射
+    this._rocketX = this.x
+    this._rocketY = this.y - 20
+    this._rocketVx = 0
+    this._rocketVy = -900
     this._targetX = this.x
-    this._targetY = this.y
-    // 从屏幕底部发射
-    this._rocketX = Screen.gameWidth / 2
-    this._rocketY = Screen.gameHeight
-    var dx = this._targetX - this._rocketX
-    var dy = this._targetY - this._rocketY
-    var dist = Math.sqrt(dx * dx + dy * dy)
-    var speed = 900
-    this._rocketVx = (dx / dist) * speed
-    this._rocketVy = (dy / dist) * speed
+    this._targetY = this.y - 300
     this._launched = true
     this._cooldown = (1 / this.config.upgrades[this.level - 1].speed) * 1000
   }

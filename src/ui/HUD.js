@@ -12,6 +12,7 @@ class HUDClass {
     this.levelName = ''
     this._dirty = true
     this._time = 0
+    this._pauseBtn = null
   }
 
   init(levelConfig) {
@@ -34,6 +35,12 @@ class HUDClass {
   setCombo(val) { if (this.combo !== val) { this.combo = val; this._dirty = true }; if (val > this.maxCombo) this.maxCombo = val }
   setTimer(val) { if (this.timer !== val) { this.timer = Math.max(0, val); this._dirty = true } }
   setWave(val) { if (this.wave !== val) { this.wave = val; this._dirty = true } }
+
+  hitTestPause(px, py) {
+    if (!this._pauseBtn) return false
+    var b = this._pauseBtn
+    return px >= b.x && px <= b.x + b.w && py >= b.y && py <= b.y + b.h
+  }
 
   update(dt) {
     this._time += dt
@@ -81,12 +88,33 @@ class HUDClass {
     ctx.font = Screen.scale(10) + 'px sans-serif'
     ctx.fillText('💰 ' + this.displayGold, leftX, midY + 9)
 
-    // ── Wave indicator (right) ──
+    // ── Pause button (right edge) ──
+    var pauseBtnW = Screen.scale(30)
+    var pauseBtnH = Screen.scale(30)
+    var pauseBtnX = Screen.gameWidth - padding - 10 - pauseBtnW
+    var pauseBtnY = topY + (barH - pauseBtnH) / 2
+    this._pauseBtn = { x: pauseBtnX, y: pauseBtnY, w: pauseBtnW, h: pauseBtnH }
+
+    ctx.fillStyle = Theme.paperCream
+    ctx.strokeStyle = Theme.ink
+    ctx.lineWidth = 1.5
+    ctx.beginPath()
+    ctx.roundRect(pauseBtnX, pauseBtnY, pauseBtnW, pauseBtnH, [6])
+    ctx.fill()
+    ctx.stroke()
+
+    ctx.fillStyle = Theme.ink
+    ctx.font = Screen.scale(16) + 'px sans-serif'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText('⏸', pauseBtnX + pauseBtnW / 2, pauseBtnY + pauseBtnH / 2)
+
+    // ── Wave indicator (right, left of pause btn) ──
     ctx.fillStyle = Theme.inkLight
     ctx.font = Screen.scale(11) + 'px sans-serif'
     ctx.textAlign = 'right'
     ctx.textBaseline = 'middle'
-    ctx.fillText('第 ' + this.wave + '/' + this.totalWaves + ' 波', Screen.gameWidth - padding - 10, midY)
+    ctx.fillText('第 ' + this.wave + '/' + this.totalWaves + ' 波', pauseBtnX - 8, midY)
 
     // ── Defense HP blocks (right, below wave) ──
     var hpBlocks = 10

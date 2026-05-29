@@ -39,6 +39,10 @@ class WeaponSwitcherClass {
           this.weaponInstances[id] = new Slipper()
         } else if (id === 'rocket') {
           this.weaponInstances[id] = new Rocket()
+        } else if (id === 'machinegun') {
+          this.weaponInstances[id] = new MachineGun()
+        } else if (id === 'poop') {
+          this.weaponInstances[id] = new Poop()
         }
       }
     }
@@ -48,6 +52,11 @@ class WeaponSwitcherClass {
       Storage.setWeaponLevel('broom', 1)
     }
     this.currentWeaponId = this.weapons[0]
+
+    // 成就检测
+    if (typeof AchievementTracker !== 'undefined') {
+      AchievementTracker.check('weaponsUnlocked', this.weapons.length)
+    }
   }
 
   getCurrentWeapon() {
@@ -57,7 +66,9 @@ class WeaponSwitcherClass {
   switchTo(weaponId) {
     if (this.weaponInstances[weaponId]) {
       this.currentWeaponId = weaponId
-      this.weaponInstances[weaponId]._initialized = false
+      var weapon = this.weaponInstances[weaponId]
+      weapon._initialized = false
+      if (weapon.reset) weapon.reset()
     }
   }
 
@@ -131,9 +142,9 @@ class WeaponSwitcherClass {
       ctx.fillText(config.icon, cx + cardW / 2, this._y)
     }
 
-    // Current weapon render
-    const weapon = this.getCurrentWeapon()
-    if (weapon && InputManager.isTouching()) {
+    // Current weapon render (touching, or has active projectiles)
+    var weapon = this.getCurrentWeapon()
+    if (weapon && (InputManager.isTouching() || weapon._launched || weapon._exploding || weapon._thrown || weapon._splashing || (weapon._bullets && weapon._bullets.length > 0))) {
       weapon.render(ctx)
     }
   }

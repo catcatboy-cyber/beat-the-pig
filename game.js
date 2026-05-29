@@ -42,6 +42,7 @@ require('./src/data/DialogConfig.js')
 require('./src/data/PigTypes.js')
 require('./src/data/WeaponConfig.js')
 require('./src/data/LevelConfig.js')
+require('./src/data/AchievementConfig.js')
 require('./src/data/ShopConfig.js')
 
 require('./src/entities/Pig.js')
@@ -52,6 +53,8 @@ require('./src/entities/weapons/FlySwatter.js')
 require('./src/entities/weapons/Taser.js')
 require('./src/entities/weapons/Slipper.js')
 require('./src/entities/weapons/Rocket.js')
+require('./src/entities/weapons/MachineGun.js')
+require('./src/entities/weapons/Poop.js')
 require('./src/entities/Hole.js')
 require('./src/entities/DefenseLine.js')
 
@@ -60,22 +63,25 @@ require('./src/systems/CollisionSystem.js')
 require('./src/systems/ComboSystem.js')
 require('./src/systems/UpgradeSystem.js')
 require('./src/systems/AdManager.js')
+require('./src/systems/AchievementTracker.js')
 
 require('./src/ui/Theme.js')
 require('./src/ui/Button.js')
 require('./src/ui/HUD.js')
 require('./src/ui/WeaponSwitcher.js')
 require('./src/ui/DialogBubble.js')
+require('./src/ui/UpgradePanel.js')
+require('./src/ui/SignInPanel.js')
 require('./src/ui/DamageNumber.js')
+
+require('./src/cloud/Rank.js')
+require('./src/cloud/UserData.js')
+require('./src/cloud/Report.js')
 
 require('./src/scenes/MenuScene.js')
 require('./src/scenes/BattleScene.js')
 require('./src/scenes/ShopScene.js')
 require('./src/scenes/SettlementScene.js')
-
-require('./src/cloud/Rank.js')
-require('./src/cloud/UserData.js')
-require('./src/cloud/Report.js')
 
 // 启动诊断
 try { wx.showLoading({ title: '加载中...' }) } catch (e) {}
@@ -85,6 +91,9 @@ if (typeof wx.onError === 'function') {
   wx.onError(function (msg) {
     var errMsg = (msg && msg.message) || msg || '未知错误'
     console.error('[Global Error]', errMsg)
+    // 忽略微信原生组件的已知非关键错误
+    if (typeof errMsg === 'string' && errMsg.indexOf('insertTextView') !== -1) return
+    if (typeof errMsg === 'string' && errMsg.indexOf('parent') !== -1 && errMsg.indexOf('not found') !== -1) return
     try { wx.hideLoading() } catch (e) {}
     wx.showModal({
       title: '出错了',

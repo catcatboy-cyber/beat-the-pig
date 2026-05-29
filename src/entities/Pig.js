@@ -57,6 +57,8 @@ class Pig {
     this._shockTimer = 0
     this._burnTimer = 0
     this._burnDps = 0
+    this._poisonTimer = 0
+    this._poisonDps = 0
 
     // Boss 专属状态
     this._weaknessCount = 0
@@ -123,6 +125,8 @@ class Pig {
     this._shockTimer = 0
     this._burnTimer = 0
     this._burnDps = 0
+    this._poisonTimer = 0
+    this._poisonDps = 0
     this._weaknessCount = cfg.isBoss ? 3 : 0
     this._stunned = false
     this._stunTimer = 0
@@ -203,6 +207,13 @@ class Pig {
         if (this._burnTimer > 0) {
           this._burnTimer -= dt
           this.hp -= this._burnDps * dtSec
+          if (this.hp <= 0 && this.state !== PIG_STATE.DEAD) {
+            this.state = PIG_STATE.DEAD
+          }
+        }
+        if (this._poisonTimer > 0) {
+          this._poisonTimer -= dt
+          this.hp -= this._poisonDps * dtSec
           if (this.hp <= 0 && this.state !== PIG_STATE.DEAD) {
             this.state = PIG_STATE.DEAD
           }
@@ -776,6 +787,8 @@ class Pig {
     this._shockTimer = 0
     this._burnTimer = 0
     this._burnDps = 0
+    this._poisonTimer = 0
+    this._poisonDps = 0
     this._weaknessCount = 0
     this._stunned = false
     this._stunTimer = 0
