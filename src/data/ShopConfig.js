@@ -27,7 +27,10 @@ const ShopConfig = {
     { id: 'dramatic', name: '戏精版', cost: 1000, desc: '"啊我死了！复活！又死了！"' },
     { id: 'dialect', name: '方言版', cost: 1500, desc: '东北/四川/广东话惨叫' },
     { id: 'robot', name: '机器人版', cost: 1200, desc: '电子音惨叫' },
-    { id: 'chipmunk', name: '花栗鼠版', cost: 1000, desc: '加速变声惨叫' }
+    { id: 'chipmunk', name: '花栗鼠版', cost: 1000, desc: '加速变声惨叫' },
+    { id: 'boss_tone', name: '老板腔', cost: 1200, desc: '"这个月的KPI你完成了吗？"' },
+    { id: 'green_tea', name: '绿茶腔', cost: 1200, desc: '"哥哥你打人家好痛哦~"' },
+    { id: 'monk_tone', name: '唐僧腔', cost: 1500, desc: '"打猪是不对的，不过...嗯。"' }
   ],
   backgrounds: [
     { id: 'default', name: '默认房间', cost: 0, desc: '温馨小客厅' },

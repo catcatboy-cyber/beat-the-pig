@@ -72,6 +72,8 @@ class Pig {
     // 受伤视觉
     this.injuryLevel = 0
     this.shakeTimer = 0
+    this._knockbackRotation = 0
+    this._knockbackRotSpeed = 0
 
     // 台词
     this.lastDialogTime = 0
@@ -109,6 +111,8 @@ class Pig {
     this.invincibleTimer = 0
     this.knockbackTimer = 0
     this.shakeTimer = 0
+    this._knockbackRotation = 0
+    this._knockbackRotSpeed = 0
     this.abilityTimer = 0
     this.abilityCooldown = 0
     this._crying = false
@@ -169,6 +173,8 @@ class Pig {
     this.knockbackVx = knockDir.x * (knockForce || 5)
     this.knockbackVy = knockDir.y * (knockForce || 5) - 3
     this.knockbackTimer = 8
+    this._knockbackRotation = 0
+    this._knockbackRotSpeed = (Math.random() - 0.5) * 0.3
 
     // 哭包猪：被打后原地大哭
     if (this.typeConfig.abilities && this.typeConfig.abilities.indexOf('cry_block') >= 0) {
@@ -227,6 +233,7 @@ class Pig {
         }
         this.x += this.knockbackVx * dtSec * 60
         this.y += this.knockbackVy * dtSec * 60
+        this._knockbackRotation += this._knockbackRotSpeed * dtSec * 60
         this.knockbackTimer--
         if (this.knockbackTimer <= 0) {
           if (this.hp <= 0) {
@@ -255,11 +262,19 @@ class Pig {
     var padding = 4
     if (this.x < halfW + padding) {
       this.x = halfW + padding
-      if (this.state === PIG_STATE.KNOCKBACK) this.knockbackVx = Math.abs(this.knockbackVx) * 0.4
+      if (this.state === PIG_STATE.KNOCKBACK) {
+        this.knockbackVx = Math.abs(this.knockbackVx) * 0.4
+        this._knockbackRotSpeed *= -1.2
+        ParticleSystem.emitHit(this.x, this.y, 'broom')
+      }
     }
     if (this.x > Screen.gameWidth - halfW - padding) {
       this.x = Screen.gameWidth - halfW - padding
-      if (this.state === PIG_STATE.KNOCKBACK) this.knockbackVx = -Math.abs(this.knockbackVx) * 0.4
+      if (this.state === PIG_STATE.KNOCKBACK) {
+        this.knockbackVx = -Math.abs(this.knockbackVx) * 0.4
+        this._knockbackRotSpeed *= -1.2
+        ParticleSystem.emitHit(this.x, this.y, 'broom')
+      }
     }
 
     // 出界检测
@@ -390,8 +405,26 @@ class Pig {
     if (now - this.lastDialogTime < 1500) return
     this.lastDialogTime = now
 
+    // 30% 概率使用玩家自定义台词
+    var customDialog = Storage.getCustomDialog(this.nickname)
+    if (customDialog && Math.random() < 0.3) {
+      this.currentDialog = customDialog
+      return
+    }
+
     const pool = DialogConfig[this.emotion] || DialogConfig.arrogant
-    this.currentDialog = pool[Math.floor(Math.random() * pool.length)]
+    var raw = pool[Math.floor(Math.random() * pool.length)]
+    this.currentDialog = this._fillDialog(raw)
+  }
+
+  _fillDialog(text) {
+    var weapon = WeaponSwitcher.getCurrentWeapon()
+    var weaponName = (weapon && weapon.config && weapon.config.name) || '武器'
+    return text
+      .replace(/\{name\}/g, this.nickname || '小猪')
+      .replace(/\{gold\}/g, String(this.gold || 0))
+      .replace(/\{combo\}/g, String(ComboSystem.getCombo() || 0))
+      .replace(/\{weapon\}/g, weaponName)
   }
 
   _updateAABB() {
@@ -417,6 +450,14 @@ class Pig {
       const intensity = 3 * (this.shakeTimer / 8)
       drawX += (Math.random() - 0.5) * intensity * 2
       drawY += (Math.random() - 0.5) * intensity * 2
+    }
+
+    // 击退旋转
+    if (this.state === PIG_STATE.KNOCKBACK && this._knockbackRotation !== 0) {
+      ctx.translate(drawX, drawY)
+      ctx.rotate(this._knockbackRotation)
+      drawX = 0
+      drawY = 0
     }
 
     // 死亡动画
@@ -789,6 +830,8 @@ class Pig {
     this._burnDps = 0
     this._poisonTimer = 0
     this._poisonDps = 0
+    this._knockbackRotation = 0
+    this._knockbackRotSpeed = 0
     this._weaknessCount = 0
     this._stunned = false
     this._stunTimer = 0

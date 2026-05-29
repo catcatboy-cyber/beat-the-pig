@@ -12,6 +12,15 @@ class BattleScene {
     this._mudDebuffTimer = 0
     this._paused = false
     this._nextUpgradeKills = 20
+    this._screenPulse = 0
+    this._slowmoTimer = 0
+    this._freezeTimer = 0
+    this._bigText = ''
+    this._bigTextTimer = 0
+    this._shakeIntensity = 0
+    this._shakeDuration = 0
+    this._shakeX = 0
+    this._shakeY = 0
   }
 
   onEnter(data) {
@@ -131,6 +140,35 @@ class BattleScene {
   }
 
   _updatePlaying(dt) {
+    // 慢动作
+    if (this._slowmoTimer > 0) {
+      this._slowmoTimer -= dt
+      dt *= 0.25
+    }
+    // 屏幕脉冲
+    if (this._screenPulse > 0) this._screenPulse -= dt
+    // 大字计时
+    if (this._bigTextTimer > 0) this._bigTextTimer -= dt
+    // 全猪冻结
+    if (this._freezeTimer > 0) {
+      this._freezeTimer -= dt
+      var pigs = PigSpawner.getActivePigs()
+      for (var fi = 0; fi < pigs.length; fi++) {
+        if (pigs[fi]._active && pigs[fi].alive) {
+          pigs[fi].speed = 0
+        }
+      }
+    }
+    // 屏幕震动
+    if (this._shakeDuration > 0) {
+      this._shakeDuration -= dt
+      this._shakeX = (Math.random() - 0.5) * this._shakeIntensity * 2
+      this._shakeY = (Math.random() - 0.5) * this._shakeIntensity * 2
+    } else {
+      this._shakeX = 0
+      this._shakeY = 0
+    }
+
     // 输入更新（含武器切换检测）
     WeaponSwitcher.update(dt)
 
@@ -150,6 +188,14 @@ class BattleScene {
       if (Storage.get('settings.vibrationEnabled')) {
         wx.vibrateShort({ type: hit.isSmash ? 'heavy' : 'light' })
       }
+      // 屏幕震动
+      if (hit.isExplosive) {
+        this.triggerShake(8, 250)
+      } else if (hit.isSmash) {
+        this.triggerShake(5, 180)
+      } else {
+        this.triggerShake(2, 80)
+      }
 
       // 粒子
       ParticleSystem.emitHit(hit.x, hit.y, weaponId)
@@ -163,6 +209,25 @@ class BattleScene {
 
       // 连击
       ComboSystem.onHit()
+      var milestone = ComboSystem.getMilestone()
+      if (milestone === 10) {
+        this._bigText = '10 COMBO!'
+        this._bigTextTimer = 1200
+      } else if (milestone === 30) {
+        this._screenPulse = 800
+        this._bigText = '30 COMBO!'
+        this._bigTextTimer = 1500
+      } else if (milestone === 50) {
+        this._slowmoTimer = 500
+        this._screenPulse = 1000
+        this._bigText = 'UNSTOPPABLE!'
+        this._bigTextTimer = 2000
+      } else if (milestone === 100) {
+        this._freezeTimer = 1000
+        this._screenPulse = 1500
+        this._bigText = 'GODLIKE!'
+        this._bigTextTimer = 2500
+      }
 
       // 金币
       const baseGold = pig.typeConfig.gold
@@ -223,6 +288,11 @@ class BattleScene {
         pig.speed = 0
       }
 
+      // Boss 弱点打破：重震
+      if (pig.typeConfig && pig.typeConfig.isBoss && pig._stunned) {
+        this.triggerShake(14, 400)
+      }
+
       // 火箭炮：爆炸时附加燃烧
       if (weaponId === 'rocket' && hit.isExplosive) {
         pig._burnTimer = weapon.config.burnDuration * 1000
@@ -274,6 +344,41 @@ class BattleScene {
 
     // 生成器更新
     PigSpawner.update(dt)
+
+    // 猪之间的物理碰撞（击退中）
+    for (var pi = 0; pi < activePigs.length; pi++) {
+      var pigA = activePigs[pi]
+      if (!pigA._active || !pigA.alive || pigA.state !== PIG_STATE.KNOCKBACK) continue
+      for (var pj = pi + 1; pj < activePigs.length; pj++) {
+        var pigB = activePigs[pj]
+        if (!pigB._active || !pigB.alive) continue
+        var cdx = pigB.x - pigA.x
+        var cdy = pigB.y - pigA.y
+        var cdist = Math.sqrt(cdx * cdx + cdy * cdy) || 1
+        var minDist = (pigA.width + pigB.width) / 2
+        if (cdist < minDist) {
+          var cnx = cdx / cdist
+          var cny = cdy / cdist
+          // 分离
+          var overlap = minDist - cdist
+          pigA.x -= cnx * overlap * 0.5
+          pigA.y -= cny * overlap * 0.5
+          pigB.x += cnx * overlap * 0.5
+          pigB.y += cny * overlap * 0.5
+          // 反弹速度
+          if (pigB.state !== PIG_STATE.DEAD) {
+            pigB.knockbackVx += cnx * 3
+            pigB.knockbackVy += cny * 3
+            pigB._knockbackRotSpeed = (Math.random() - 0.5) * 0.4
+            if (pigB.state === PIG_STATE.WALKING) {
+              pigB.state = PIG_STATE.KNOCKBACK
+              pigB.knockbackTimer = 6
+            }
+          }
+          ParticleSystem.emitHit((pigA.x + pigB.x) / 2, (pigA.y + pigB.y) / 2, 'broom')
+        }
+      }
+    }
 
     // 泥巴攻击处理（嘲讽猪扔泥巴降低玩家攻击力）
     var mudThrows = PigSpawner.getPendingMudThrows()
@@ -429,6 +534,11 @@ class BattleScene {
   }
 
   render(ctx) {
+    ctx.save()
+    if (this._shakeX || this._shakeY) {
+      ctx.translate(this._shakeX, this._shakeY)
+    }
+
     // Paper background
     Theme.drawBackground(ctx)
 
@@ -456,6 +566,32 @@ class BattleScene {
     // Upgrade panel (on top of everything)
     UpgradePanel.render(ctx)
 
+    // Combo screen pulse
+    if (this._screenPulse > 0) {
+      var pulseAlpha = (this._screenPulse / 1500) * 0.3
+      var gradient = ctx.createRadialGradient(Screen.gameWidth / 2, Screen.gameHeight / 2, Screen.gameWidth * 0.4, Screen.gameWidth / 2, Screen.gameHeight / 2, Screen.gameWidth * 0.8)
+      gradient.addColorStop(0, 'rgba(255, 0, 0, 0)')
+      gradient.addColorStop(1, 'rgba(255, 0, 0, ' + pulseAlpha + ')')
+      ctx.fillStyle = gradient
+      ctx.fillRect(0, 0, Screen.gameWidth, Screen.gameHeight)
+    }
+
+    // Big combo text
+    if (this._bigTextTimer > 0) {
+      var txtAlpha = Math.min(1, this._bigTextTimer / 500)
+      var txtScale = 1 + (1 - this._bigTextTimer / 2500) * 0.3
+      ctx.save()
+      ctx.globalAlpha = txtAlpha
+      ctx.fillStyle = Theme.gold
+      ctx.font = 'bold ' + Screen.scale(36 * txtScale) + 'px sans-serif'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText(this._bigText, Screen.gameWidth / 2 + 2, Screen.gameHeight * 0.35 + 2)
+      ctx.fillStyle = Theme.ink
+      ctx.fillText(this._bigText, Screen.gameWidth / 2, Screen.gameHeight * 0.35)
+      ctx.restore()
+    }
+
     // Achievement toast
     AchievementTracker.renderToast(ctx)
 
@@ -469,6 +605,8 @@ class BattleScene {
     } else if (this.state === 'defeat') {
       this._renderDefeatOverlay(ctx)
     }
+
+    ctx.restore()
   }
 
   _renderReadyOverlay(ctx) {
@@ -572,6 +710,12 @@ class BattleScene {
       btn.render(ctx)
       this._pauseButtons.push(btn)
     }
+  }
+
+  triggerShake(intensity, duration) {
+    if (this._shakeDuration > 0 && this._shakeIntensity >= intensity) return
+    this._shakeIntensity = intensity
+    this._shakeDuration = duration || 150
   }
 
   _restartLevel() {

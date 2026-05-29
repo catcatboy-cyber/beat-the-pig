@@ -158,6 +158,25 @@ class StorageUtil {
     this.save()
   }
 
+  getCustomDialogs() {
+    return this._cache.customDialogs || {}
+  }
+
+  getCustomDialog(name) {
+    var dialogs = this._cache.customDialogs || {}
+    return dialogs[name] || ''
+  }
+
+  setCustomDialog(name, text) {
+    if (!this._cache.customDialogs) this._cache.customDialogs = {}
+    if (text) {
+      this._cache.customDialogs[name] = text
+    } else {
+      delete this._cache.customDialogs[name]
+    }
+    this.save()
+  }
+
   getAllData() {
     return this._cache
   }

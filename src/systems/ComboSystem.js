@@ -5,6 +5,7 @@ class ComboSystemClass {
     this.lastHitTime = 0
     this.comboWindow = 800  // 800ms 内连击有效
     this.multiplier = 1
+    this._milestone = 0
   }
 
   reset() {
@@ -27,10 +28,16 @@ class ComboSystemClass {
     }
     this._updateMultiplier()
 
-    // 连击里程碑反馈
-    if (this.combo === 10 || this.combo === 25 || this.combo === 50 || this.combo === 100) {
+    // 连击里程碑
+    this._milestone = 0
+    if (this.combo === 10 || this.combo === 30 || this.combo === 50 || this.combo === 100) {
+      this._milestone = this.combo
       ParticleSystem.emitGold(Screen.gameWidth / 2, Screen.gameHeight / 2, Math.floor(this.combo / 5))
     }
+  }
+
+  getMilestone() {
+    return this._milestone || 0
   }
 
   _updateMultiplier() {
